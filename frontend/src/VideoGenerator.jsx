@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Upload,
     Video,
@@ -146,6 +146,55 @@ const PRESET_CHARACTERS = [
     { id: 'boy1', name: 'Professional Boy 1', url: '/characters/boy1.png', gender: 'male' },
     { id: 'boy2', name: 'Professional Boy 2', url: '/characters/boy2.png', gender: 'male' },
 ];
+
+const CustomSelect = ({ value, onChange, options, icon: Icon }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const selectedOption = options.find(opt => opt.value === value) || options[0];
+
+    return (
+        <div className="custom-select" ref={containerRef}>
+            <div
+                className={`select-trigger ${isOpen ? 'active' : ''}`}
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <div className="select-value">
+                    {Icon && <Icon size={16} />}
+                    {selectedOption.label}
+                </div>
+                {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </div>
+            {isOpen && (
+                <div className="select-dropdown">
+                    {options.map((opt) => (
+                        <div
+                            key={opt.value}
+                            className={`select-option ${opt.value === value ? 'selected' : ''}`}
+                            onClick={() => {
+                                onChange(opt.value);
+                                setIsOpen(false);
+                            }}
+                        >
+                            <span>{opt.label}</span>
+                            {opt.value === value && <Check size={14} className="select-option-check" />}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const VideoGenerator = () => {
     // Pipeline State
@@ -516,37 +565,41 @@ const VideoGenerator = () => {
                 <div className="grid-3">
                     <div className="input-group">
                         <label><Languages size={14} /> Language</label>
-                        <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-                            <option value="English">English (US/UK)</option>
-                            <option value="English (India)">English (India)</option>
-                            <option value="Hindi">Hindi</option>
-                            <option value="Bengali">Bengali</option>
-                            <option value="Gujarati">Gujarati</option>
-                            <option value="Marathi">Marathi</option>
-                            <option value="Tamil">Tamil</option>
-                            <option value="Telugu">Telugu</option>
-                            <option value="Kannada">Kannada</option>
-                            <option value="Malayalam">Malayalam</option>
-                        </select>
+                        <CustomSelect
+                            value={language}
+                            onChange={setLanguage}
+                            options={Object.keys(VOICES).map(lang => ({
+                                value: lang,
+                                label: lang === 'English' ? 'English (US/UK)' : lang
+                            }))}
+                        />
                     </div>
                     <div className="input-group">
                         <label><Clock size={14} /> Duration</label>
-                        <select value={duration} onChange={(e) => setDuration(parseInt(e.target.value))}>
-                            <option value={15}>15 Seconds</option>
-                            <option value={30}>30 Seconds</option>
-                            <option value={60}>60 Seconds</option>
-                        </select>
+                        <CustomSelect
+                            value={duration}
+                            onChange={(val) => setDuration(parseInt(val))}
+                            options={[
+                                { value: 15, label: '15 Seconds' },
+                                { value: 30, label: '30 Seconds' },
+                                { value: 60, label: '60 Seconds' }
+                            ]}
+                        />
                         {generationEngine === 'gemini' && (
                             <span className="info-subtext">Gemini shots are capped at ~8s</span>
                         )}
                     </div>
                     <div className="input-group">
                         <label><Layers size={14} /> Ratio</label>
-                        <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}>
-                            <option value="16:9">16:9 (YouTube)</option>
-                            <option value="9:16">9:16 (Reels/TikTok)</option>
-                            <option value="1:1">1:1 (Square)</option>
-                        </select>
+                        <CustomSelect
+                            value={aspectRatio}
+                            onChange={setAspectRatio}
+                            options={[
+                                { value: '16:9', label: '16:9 (YouTube)' },
+                                { value: '9:16', label: '9:16 (Reels/TikTok)' },
+                                { value: '1:1', label: '1:1 (Square)' }
+                            ]}
+                        />
                     </div>
                 </div>
 
@@ -819,11 +872,14 @@ const VideoGenerator = () => {
                         <h3><User size={16} /> Voice Settings</h3>
                         <div className="input-group">
                             <label>Pick a Voice</label>
-                            <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)}>
-                                {VOICES[language].map(v => (
-                                    <option key={v.id} value={v.id}>{v.name}</option>
-                                ))}
-                            </select>
+                            <CustomSelect
+                                value={selectedVoice}
+                                onChange={setSelectedVoice}
+                                options={VOICES[language].map(v => ({
+                                    value: v.id,
+                                    label: v.name
+                                }))}
+                            />
                         </div>
                         <div className="range-controls">
                             <div className="range-item">
@@ -841,9 +897,14 @@ const VideoGenerator = () => {
                         <h3><Music size={16} /> Atmosphere</h3>
                         <div className="input-group">
                             <label>Background Music</label>
-                            <select value={bgMusic} onChange={(e) => setBgMusic(e.target.value)}>
-                                {MUSIC.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                            </select>
+                            <CustomSelect
+                                value={bgMusic}
+                                onChange={setBgMusic}
+                                options={MUSIC.map(m => ({
+                                    value: m.id,
+                                    label: m.name
+                                }))}
+                            />
                         </div>
                         {bgMusic !== 'none' && (
                             <div className="range-item">
