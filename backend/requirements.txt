@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+google-genai
+requests
+edge-tts
+Pillow
+tenacity

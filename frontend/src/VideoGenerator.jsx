@@ -1,0 +1,1267 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+    Upload,
+    Video,
+    Sparkles,
+    Image as ImageIcon,
+    CheckCircle2,
+    AlertCircle,
+    Play,
+    Loader2,
+    RefreshCcw,
+    X,
+    MessageSquare,
+    Settings,
+    Music,
+    Layers,
+    Download,
+    History,
+    ChevronRight,
+    Languages,
+    Clock,
+    User,
+    Volume2,
+    Zap,
+    Subtitles,
+    Globe,
+    Monitor,
+    Smartphone,
+    Square,
+    Copy,
+    Check,
+    ChevronDown,
+    ChevronUp,
+    BarChart3,
+    IndianRupee,
+    DollarSign,
+    Activity,
+    Mic
+} from 'lucide-react';
+import './VideoGenerator.css';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+
+const VOICES = {
+    'English': [
+        { id: 'en-US-AndrewNeural', name: 'Andrew (Male)', gender: 'male' },
+        { id: 'en-US-AvaNeural', name: 'Ava (Female)', gender: 'female' },
+        { id: 'en-US-BrianNeural', name: 'Brian (Male)', gender: 'male' },
+        { id: 'en-US-EmmaNeural', name: 'Emma (Female)', gender: 'female' },
+        { id: 'en-US-AriaNeural', name: 'Aria (Female)', gender: 'female' },
+        { id: 'en-US-GuyNeural', name: 'Guy (Male)', gender: 'male' }
+    ],
+    'English (India)': [
+        { id: 'en-IN-NeerjaNeural', name: 'Neerja (Female)', gender: 'female' },
+        { id: 'en-IN-PrabhatNeural', name: 'Prabhat (Male)', gender: 'male' },
+        { id: 'en-IN-NeerjaExpressiveNeural', name: 'Neerja (Expressive)', gender: 'female' }
+    ],
+    'Hindi': [
+        { id: 'hi-IN-SwaraNeural', name: 'Swara (Female)', gender: 'female' },
+        { id: 'hi-IN-MadhurNeural', name: 'Madhur (Male)', gender: 'male' }
+    ],
+    'Bengali': [
+        { id: 'bn-IN-TanishaaNeural', name: 'Tanishaa (Female)', gender: 'female' },
+        { id: 'bn-IN-BashkarNeural', name: 'Bashkar (Male)', gender: 'male' }
+    ],
+    'Gujarati': [
+        { id: 'gu-IN-DhwaniNeural', name: 'Dhwani (Female)', gender: 'female' },
+        { id: 'gu-IN-NiranjanNeural', name: 'Niranjan (Male)', gender: 'male' }
+    ],
+    'Marathi': [
+        { id: 'mr-IN-AarohiNeural', name: 'Aarohi (Female)', gender: 'female' },
+        { id: 'mr-IN-ManoharNeural', name: 'Manohar (Male)', gender: 'male' }
+    ],
+    'Tamil': [
+        { id: 'ta-IN-PallaviNeural', name: 'Pallavi (Female)', gender: 'female' },
+        { id: 'ta-IN-ValluvarNeural', name: 'Valluvar (Male)', gender: 'male' }
+    ],
+    'Telugu': [
+        { id: 'te-IN-ShrutiNeural', name: 'Shruti (Female)', gender: 'female' },
+        { id: 'te-IN-MohanNeural', name: 'Mohan (Male)', gender: 'male' }
+    ],
+    'Kannada': [
+        { id: 'kn-IN-SapnaNeural', name: 'Sapna (Female)', gender: 'female' },
+        { id: 'kn-IN-GaganNeural', name: 'Gagan (Male)', gender: 'male' }
+    ],
+    'Malayalam': [
+        { id: 'ml-IN-SobhanaNeural', name: 'Sobhana (Female)', gender: 'female' },
+        { id: 'ml-IN-MidhunNeural', name: 'Midhun (Male)', gender: 'male' }
+    ]
+};
+
+const BACKGROUNDS = [
+    { id: 'original', name: 'Original Photo', icon: ImageIcon },
+    { id: 'office', name: 'Modern Office', icon: Layers },
+    { id: 'studio', name: 'TV Studio', icon: Layers },
+    { id: 'nature', name: 'Nature View', icon: Layers }
+];
+
+const MUSIC = [
+    { id: 'none', name: 'No Music' },
+    { id: 'calm', name: 'Calm & Relaxing' },
+    { id: 'energetic', name: 'High Energy' },
+    { id: 'tech', name: 'Tech & Future' }
+];
+
+const CAPTION_STYLES = [
+    { id: 'default', name: 'Default', desc: 'Clean white text with outline' },
+    { id: 'bold', name: 'Bold', desc: 'Large bold yellow text' },
+    { id: 'minimal', name: 'Minimal', desc: 'Small subtle text' },
+    { id: 'karaoke', name: 'Karaoke', desc: 'Green impact-style text' }
+];
+
+const DUB_LANGUAGES = [
+    { id: 'Hindi', name: 'Hindi', flag: '🇮🇳' },
+    { id: 'English', name: 'English', flag: '🇺🇸' },
+    { id: 'English (India)', name: 'English (India)', flag: '🇮🇳' },
+    { id: 'Bengali', name: 'Bengali', flag: '🇮🇳' },
+    { id: 'Tamil', name: 'Tamil', flag: '🇮🇳' },
+    { id: 'Telugu', name: 'Telugu', flag: '🇮🇳' },
+    { id: 'Marathi', name: 'Marathi', flag: '🇮🇳' },
+    { id: 'Gujarati', name: 'Gujarati', flag: '🇮🇳' },
+    { id: 'Kannada', name: 'Kannada', flag: '🇮🇳' },
+    { id: 'Malayalam', name: 'Malayalam', flag: '🇮🇳' },
+    { id: 'Spanish', name: 'Spanish', flag: '🇪🇸' },
+    { id: 'French', name: 'French', flag: '🇫🇷' },
+    { id: 'German', name: 'German', flag: '🇩🇪' },
+    { id: 'Japanese', name: 'Japanese', flag: '🇯🇵' },
+    { id: 'Korean', name: 'Korean', flag: '🇰🇷' },
+    { id: 'Chinese', name: 'Chinese', flag: '🇨🇳' },
+    { id: 'Arabic', name: 'Arabic', flag: '🇸🇦' },
+    { id: 'Portuguese', name: 'Portuguese', flag: '🇧🇷' },
+    { id: 'Russian', name: 'Russian', flag: '🇷🇺' },
+    { id: 'Italian', name: 'Italian', flag: '🇮🇹' },
+];
+
+const FORMAT_ICONS = {
+    '16:9': Monitor,
+    '9:16': Smartphone,
+    '1:1': Square
+};
+
+const PRESET_CHARACTERS = [
+    { id: 'girl1', name: 'Professional Girl 1', url: '/characters/girl1.png', gender: 'female' },
+    { id: 'girl2', name: 'Professional Girl 2', url: '/characters/girl2.png', gender: 'female' },
+    { id: 'boy1', name: 'Professional Boy 1', url: '/characters/boy1.png', gender: 'male' },
+    { id: 'boy2', name: 'Professional Boy 2', url: '/characters/boy2.png', gender: 'male' },
+];
+
+const VideoGenerator = () => {
+    // Pipeline State
+    const [step, setStep] = useState(1);
+    const [topic, setTopic] = useState('');
+    const [image, setImage] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [script, setScript] = useState('');
+
+    // Settings State
+    const [language, setLanguage] = useState('English');
+    const [duration, setDuration] = useState(15);
+    const [selectedVoice, setSelectedVoice] = useState(VOICES['English'][0].id);
+    const [voiceSpeed, setVoiceSpeed] = useState(0);
+    const [voicePitch, setVoicePitch] = useState(0);
+    const [bgType, setBgType] = useState('original');
+    const [bgMusic, setBgMusic] = useState('none');
+    const [musicVolume, setMusicVolume] = useState(0.2);
+    const [aspectRatio, setAspectRatio] = useState("16:9");
+    const [generationEngine, setGenerationEngine] = useState("gemini");
+
+    // Caption State
+    const [captionsEnabled, setCaptionsEnabled] = useState(false);
+    const [captionStyle, setCaptionStyle] = useState('default');
+
+    // Veo State
+    const [veoQuality, setVeoQuality] = useState('fast');
+
+    // Multi-Format State
+    const [generateAllFormats, setGenerateAllFormats] = useState(false);
+
+    // Auto-Dub State
+    const [dubEnabled, setDubEnabled] = useState(false);
+    const [selectedDubLanguages, setSelectedDubLanguages] = useState([]);
+    const [dubLangDropdownOpen, setDubLangDropdownOpen] = useState(false);
+
+    // Status State
+    const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState('idle');
+    const [statusMessage, setStatusMessage] = useState('');
+    const [result, setResult] = useState(null);
+    const [history, setHistory] = useState([]);
+
+    // Post-processing state
+    const [postProcessing, setPostProcessing] = useState(false);
+    const [formatResults, setFormatResults] = useState({});
+    const [dubResults, setDubResults] = useState([]);
+    const [copiedText, setCopiedText] = useState(null);
+
+    // Usage tracking state
+    const [usageData, setUsageData] = useState(null);
+    const [showUsagePanel, setShowUsagePanel] = useState(false);
+    const [lastGenerationUsage, setLastGenerationUsage] = useState(null);
+
+    // Character state
+    const [selectedCharacterId, setSelectedCharacterId] = useState(null);
+    const [voiceOnlyUrl, setVoiceOnlyUrl] = useState(null);
+    const [generatingVoice, setGeneratingVoice] = useState(false);
+
+    // Load History & Usage
+    useEffect(() => {
+        const saved = localStorage.getItem('video_history');
+        if (saved) setHistory(JSON.parse(saved));
+        fetchUsageData();
+    }, []);
+
+    const fetchUsageData = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/usage`);
+            const data = await res.json();
+            if (data.status === 'success') {
+                setUsageData(data.data);
+            }
+        } catch (e) {
+            console.log('Usage data not available');
+        }
+    };
+
+    // Update voice when language changes
+    useEffect(() => {
+        if (VOICES[language]) {
+            setSelectedVoice(VOICES[language][0].id);
+        }
+    }, [language]);
+
+    const saveToHistory = (item) => {
+        const newHistory = [item, ...history].slice(0, 10);
+        setHistory(newHistory);
+        localStorage.setItem('video_history', JSON.stringify(newHistory));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImage(file);
+            setPreviewUrl(URL.createObjectURL(file));
+            setSelectedCharacterId(null);
+        }
+    };
+
+    const handleSelectCharacter = async (char) => {
+        setSelectedCharacterId(char.id);
+        setPreviewUrl(char.url);
+
+        // Fetch the image and convert to File object
+        try {
+            const response = await fetch(char.url);
+            const blob = await response.blob();
+            const file = new File([blob], `${char.id}.png`, { type: 'image/png' });
+            setImage(file);
+        } catch (error) {
+            console.error('Error selecting character:', error);
+        }
+    };
+
+    const handleGenerateVoiceOnly = async () => {
+        if (!script) return;
+        setGeneratingVoice(true);
+        try {
+            const formData = new FormData();
+            formData.append('script', script);
+            formData.append('voice', selectedVoice);
+            formData.append('speed', voiceSpeed);
+            formData.append('pitch', voicePitch);
+
+            const response = await fetch(`${API_BASE_URL}/generate-voice`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setVoiceOnlyUrl(data.data.audio_url);
+                alert('AI Voice generated successfully!');
+            }
+        } catch (error) {
+            console.error('Voice generation failed:', error);
+            alert('Failed to generate voice');
+        } finally {
+            setGeneratingVoice(false);
+        }
+    };
+
+    const toggleDubLanguage = (langId) => {
+        setSelectedDubLanguages(prev => {
+            if (prev.includes(langId)) {
+                return prev.filter(l => l !== langId);
+            }
+            return [...prev, langId];
+        });
+    };
+
+    const handleDraftScript = async () => {
+        if (!topic || !image) return;
+        setLoading(true);
+        try {
+            const formData = new FormData();
+            formData.append('topic', topic);
+            formData.append('language', language);
+            formData.append('duration', duration);
+
+            const response = await fetch(`${API_BASE_URL}/draft-script`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            setScript(data.script);
+            setStep(2);
+        } catch (error) {
+            console.error(error);
+            alert('Failed to draft script');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleFinalGenerate = async () => {
+        setLoading(true);
+        setStatus('generating');
+        setStatusMessage('Initializing generation pipeline...');
+        try {
+            const formData = new FormData();
+            formData.append('topic', topic);
+            formData.append('image', image);
+            formData.append('script', script);
+            formData.append('language', language);
+            formData.append('voice', selectedVoice);
+            formData.append('speed', voiceSpeed);
+            formData.append('pitch', voicePitch);
+            formData.append('background_type', bgType);
+            formData.append('music', bgMusic);
+            formData.append('music_volume', musicVolume);
+            formData.append('duration', duration);
+            formData.append('aspect_ratio', aspectRatio);
+            formData.append('engine', generationEngine);
+            formData.append('veo_quality', veoQuality);
+
+            // Caption params
+            formData.append('captions_enabled', captionsEnabled ? 'true' : 'false');
+            formData.append('caption_style', captionStyle);
+
+            // Multi-format params
+            formData.append('generate_all_formats', generateAllFormats ? 'true' : 'false');
+
+            // Auto-dub params
+            if (dubEnabled && selectedDubLanguages.length > 0) {
+                formData.append('dub_languages', selectedDubLanguages.join(','));
+            }
+
+            setStatusMessage('Generating video... This may take a few minutes.');
+            const response = await fetch(`${API_BASE_URL}/generate`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            if (data.status === 'error') {
+                setStatus('error');
+                setResult(data);
+                setStep(3);
+                return;
+            }
+            setResult(data);
+
+            // Extract extra results
+            if (data.data?.format_urls) {
+                setFormatResults(data.data.format_urls);
+            }
+            if (data.data?.dub_results) {
+                setDubResults(data.data.dub_results);
+            }
+
+            saveToHistory({
+                id: Date.now(),
+                topic,
+                video_url: data.data.video_url,
+                date: new Date().toLocaleDateString()
+            });
+            setStep(3);
+            setStatus('success');
+            // Refresh usage data
+            fetchUsageData();
+
+            // Set last generation usage
+            if (data.data?.usage) {
+                setLastGenerationUsage(data.data.usage);
+            }
+        } catch (error) {
+            console.error(error);
+            setStatus('error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Post-generation: convert to a specific format
+    const handleConvertFormat = async (targetRatio) => {
+        if (!result?.data?.video_url) return;
+        setPostProcessing(true);
+        try {
+            const videoFilename = result.data.video_url.split('/temp/')[1];
+            const formData = new FormData();
+            formData.append('video_filename', videoFilename);
+            formData.append('target_ratio', targetRatio);
+            formData.append('mode', 'fit');
+
+            const response = await fetch(`${API_BASE_URL}/convert-format`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setFormatResults(prev => ({
+                    ...prev,
+                    [targetRatio]: data.data.converted_video_url
+                }));
+            }
+        } catch (error) {
+            console.error('Format conversion failed:', error);
+        } finally {
+            setPostProcessing(false);
+        }
+    };
+
+    // Post-generation: add captions to existing video 
+    const handlePostCaptions = async () => {
+        if (!result?.data?.video_url) return;
+        setPostProcessing(true);
+        try {
+            const videoFilename = result.data.video_url.split('/temp/')[1];
+            const formData = new FormData();
+            formData.append('video_filename', videoFilename);
+            formData.append('script', script);
+            formData.append('caption_style', captionStyle);
+            formData.append('aspect_ratio', aspectRatio);
+
+            const response = await fetch(`${API_BASE_URL}/add-captions`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setResult(prev => ({
+                    ...prev,
+                    data: {
+                        ...prev.data,
+                        captioned_video_url: data.data.captioned_video_url
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('Caption failed:', error);
+        } finally {
+            setPostProcessing(false);
+        }
+    };
+
+    // Post-generation: auto-dub
+    const handlePostDub = async (targetLanguages) => {
+        if (!script) return;
+        setPostProcessing(true);
+        try {
+            const formData = new FormData();
+            formData.append('script', script);
+            formData.append('source_language', language);
+            formData.append('target_languages', targetLanguages.join(','));
+            formData.append('speed', voiceSpeed);
+            formData.append('pitch', voicePitch);
+
+            const response = await fetch(`${API_BASE_URL}/auto-dub`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setDubResults(data.data.dubs);
+            }
+        } catch (error) {
+            console.error('Auto-dub failed:', error);
+        } finally {
+            setPostProcessing(false);
+        }
+    };
+
+    const copyToClipboard = (text, id) => {
+        navigator.clipboard.writeText(text);
+        setCopiedText(id);
+        setTimeout(() => setCopiedText(null), 2000);
+    };
+
+    const renderStep1 = () => (
+        <div className="wizard-step">
+            <div className="section-header">
+                <Sparkles className="header-icon" />
+                <h2>Create Your Masterpiece</h2>
+                <p>Start with a topic and your character photo.</p>
+            </div>
+
+            <div className="modern-form">
+                <div className="input-group">
+                    <label>Topic / Prompt</label>
+                    <textarea
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        placeholder="Explain how AI works to a 5-year old..."
+                        rows="3"
+                    />
+                </div>
+
+                <div className="grid-3">
+                    <div className="input-group">
+                        <label><Languages size={14} /> Language</label>
+                        <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+                            <option value="English">English (US/UK)</option>
+                            <option value="English (India)">English (India)</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Bengali">Bengali</option>
+                            <option value="Gujarati">Gujarati</option>
+                            <option value="Marathi">Marathi</option>
+                            <option value="Tamil">Tamil</option>
+                            <option value="Telugu">Telugu</option>
+                            <option value="Kannada">Kannada</option>
+                            <option value="Malayalam">Malayalam</option>
+                        </select>
+                    </div>
+                    <div className="input-group">
+                        <label><Clock size={14} /> Duration</label>
+                        <select value={duration} onChange={(e) => setDuration(parseInt(e.target.value))}>
+                            <option value={15}>15 Seconds</option>
+                            <option value={30}>30 Seconds</option>
+                            <option value={60}>60 Seconds</option>
+                        </select>
+                        {generationEngine === 'gemini' && (
+                            <span className="info-subtext">Gemini shots are capped at ~8s</span>
+                        )}
+                    </div>
+                    <div className="input-group">
+                        <label><Layers size={14} /> Ratio</label>
+                        <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)}>
+                            <option value="16:9">16:9 (YouTube)</option>
+                            <option value="9:16">9:16 (Reels/TikTok)</option>
+                            <option value="1:1">1:1 (Square)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="input-group">
+                    <label><User size={14} /> Quick Select Character</label>
+                    <div className="character-grid">
+                        {PRESET_CHARACTERS.map(char => (
+                            <div
+                                key={char.id}
+                                className={`character-card ${selectedCharacterId === char.id ? 'active' : ''}`}
+                                onClick={() => handleSelectCharacter(char)}
+                            >
+                                <img src={char.url} alt={char.name} />
+                                {selectedCharacterId === char.id && (
+                                    <div className="char-check">
+                                        <CheckCircle2 size={16} />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="or-divider">OR</div>
+                    <label><ImageIcon size={14} /> Upload Custom Face</label>
+                    {!previewUrl || selectedCharacterId ? (
+                        <div className="upload-zone">
+                            <input type="file" accept="image/*" onChange={handleFileChange} id="img-up" hidden />
+                            <label htmlFor="img-up" className="upload-label">
+                                <Upload size={24} />
+                                <span>Upload Face Photo</span>
+                            </label>
+                        </div>
+                    ) : (
+                        <div className="preview-mini">
+                            <img src={previewUrl} alt="face" />
+                            <button onClick={() => { setImage(null); setPreviewUrl(null); setSelectedCharacterId(null) }}><X size={14} /></button>
+                        </div>
+                    )}
+                    {selectedCharacterId && (
+                        <div className="preview-mini">
+                            <img src={previewUrl} alt="face" />
+                            <span className="selected-tag">Selected AI Character</span>
+                            <button onClick={() => { setImage(null); setPreviewUrl(null); setSelectedCharacterId(null) }}><X size={14} /></button>
+                        </div>
+                    )}
+                </div>
+
+                <button
+                    className="primary-btn"
+                    onClick={handleDraftScript}
+                    disabled={!topic || !image || loading}
+                >
+                    {loading ? <Loader2 className="spinning" /> : <ChevronRight />}
+                    Draft Script
+                </button>
+            </div>
+        </div>
+    );
+
+    const renderStep2 = () => (
+        <div className="wizard-step wide">
+            <div className="section-header">
+                <Settings className="header-icon" />
+                <h2>Studio Controls</h2>
+                <p>Fine-tune your script, voice, and atmosphere.</p>
+            </div>
+
+            <div className="studio-layout">
+                <div className="studio-main">
+                    <div className="input-group">
+                        <label><MessageSquare size={14} /> Edit Script</label>
+                        <textarea
+                            value={script}
+                            onChange={(e) => setScript(e.target.value)}
+                            rows="10"
+                            className="script-editor"
+                        />
+                    </div>
+
+                    {/* Auto-Captions Card */}
+                    <div className="feature-card">
+                        <div className="feature-card-header" onClick={() => setCaptionsEnabled(!captionsEnabled)}>
+                            <div className="feature-info">
+                                <Subtitles size={18} />
+                                <div>
+                                    <h4>Auto Captions / Subtitles</h4>
+                                    <p>Burn subtitles directly into the video</p>
+                                </div>
+                            </div>
+                            <label className="toggle-switch" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                    type="checkbox"
+                                    checked={captionsEnabled}
+                                    onChange={(e) => setCaptionsEnabled(e.target.checked)}
+                                />
+                                <span className="toggle-slider"></span>
+                            </label>
+                        </div>
+                        {captionsEnabled && (
+                            <div className="feature-card-body">
+                                <div className="caption-styles">
+                                    {CAPTION_STYLES.map(style => (
+                                        <button
+                                            key={style.id}
+                                            className={`caption-style-btn ${captionStyle === style.id ? 'active' : ''}`}
+                                            onClick={() => setCaptionStyle(style.id)}
+                                        >
+                                            <span className="style-name">{style.name}</span>
+                                            <span className="style-desc">{style.desc}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Multi-Format Card */}
+                    <div className="feature-card">
+                        <div className="feature-card-header" onClick={() => setGenerateAllFormats(!generateAllFormats)}>
+                            <div className="feature-info">
+                                <Monitor size={18} />
+                                <div>
+                                    <h4>Multi-Format Output</h4>
+                                    <p>Auto-generate 16:9, 9:16, and 1:1 versions</p>
+                                </div>
+                            </div>
+                            <label className="toggle-switch" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                    type="checkbox"
+                                    checked={generateAllFormats}
+                                    onChange={(e) => setGenerateAllFormats(e.target.checked)}
+                                />
+                                <span className="toggle-slider"></span>
+                            </label>
+                        </div>
+                        {generateAllFormats && (
+                            <div className="feature-card-body">
+                                <div className="format-preview-grid">
+                                    {Object.entries(FORMAT_ICONS).map(([ratio, Icon]) => (
+                                        <div key={ratio} className={`format-preview-item ${ratio === aspectRatio ? 'original' : ''}`}>
+                                            <Icon size={24} />
+                                            <span>{ratio}</span>
+                                            {ratio === aspectRatio && <span className="badge">Primary</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Auto-Dubbing Card */}
+                    <div className="feature-card">
+                        <div className="feature-card-header" onClick={() => setDubEnabled(!dubEnabled)}>
+                            <div className="feature-info">
+                                <Globe size={18} />
+                                <div>
+                                    <h4>Auto-Dubbing (Multi-Language)</h4>
+                                    <p>Translate & generate audio in multiple languages</p>
+                                </div>
+                            </div>
+                            <label className="toggle-switch" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                    type="checkbox"
+                                    checked={dubEnabled}
+                                    onChange={(e) => setDubEnabled(e.target.checked)}
+                                />
+                                <span className="toggle-slider"></span>
+                            </label>
+                        </div>
+                        {dubEnabled && (
+                            <div className="feature-card-body">
+                                <div className="dub-lang-selector">
+                                    <div
+                                        className="dub-lang-trigger"
+                                        onClick={() => setDubLangDropdownOpen(!dubLangDropdownOpen)}
+                                    >
+                                        <span>
+                                            {selectedDubLanguages.length === 0
+                                                ? 'Select languages to dub into...'
+                                                : `${selectedDubLanguages.length} language(s) selected`
+                                            }
+                                        </span>
+                                        {dubLangDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </div>
+                                    {dubLangDropdownOpen && (
+                                        <div className="dub-lang-dropdown">
+                                            {DUB_LANGUAGES.filter(l => l.id !== language).map(lang => (
+                                                <label key={lang.id} className="dub-lang-option">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedDubLanguages.includes(lang.id)}
+                                                        onChange={() => toggleDubLanguage(lang.id)}
+                                                    />
+                                                    <span className="lang-flag">{lang.flag}</span>
+                                                    <span className="lang-name">{lang.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {selectedDubLanguages.length > 0 && (
+                                        <div className="selected-langs-chips">
+                                            {selectedDubLanguages.map(langId => {
+                                                const lang = DUB_LANGUAGES.find(l => l.id === langId);
+                                                return (
+                                                    <span key={langId} className="lang-chip">
+                                                        {lang?.flag} {lang?.name}
+                                                        <button onClick={() => toggleDubLanguage(langId)}>
+                                                            <X size={12} />
+                                                        </button>
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="studio-sidebar">
+                    <div className="settings-card">
+                        <h3><Zap size={16} /> Generation Engine</h3>
+                        <div className="engine-toggle-grid">
+                            <button
+                                className={`engine-btn ${generationEngine === 'did' ? 'active' : ''}`}
+                                onClick={() => setGenerationEngine('did')}
+                            >
+                                <div className="engine-icon-wrap"><User size={20} /></div>
+                                <div className="engine-info">
+                                    <div className="engine-name">D-ID</div>
+                                    <div className="engine-desc">Fast Talking Head</div>
+                                </div>
+                            </button>
+                            <button
+                                className={`engine-btn ${generationEngine === 'gemini' ? 'active' : ''}`}
+                                onClick={() => setGenerationEngine('gemini')}
+                            >
+                                <div className="engine-icon-wrap"><Sparkles size={20} /></div>
+                                <div className="engine-info">
+                                    <div className="engine-name">Gemini Veo</div>
+                                    <div className="engine-desc">Cinematic Video</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    {generationEngine === 'gemini' && (
+                        <div className="settings-card">
+                            <h3><Sparkles size={16} /> Veo Quality</h3>
+                            <div className="quality-toggle">
+                                <button
+                                    className={`q-btn ${veoQuality === 'fast' ? 'active' : ''}`}
+                                    onClick={() => setVeoQuality('fast')}
+                                >
+                                    <div className="q-name">Veo 3.1 Fast</div>
+                                    <div className="q-desc">~73s Wait</div>
+                                </button>
+                                <button
+                                    className={`q-btn ${veoQuality === 'standard' ? 'active' : ''}`}
+                                    onClick={() => setVeoQuality('standard')}
+                                >
+                                    <div className="q-name">Veo 3.1 Standard</div>
+                                    <div className="q-desc">~160s Wait</div>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="settings-card">
+                        <h3><User size={16} /> Voice Settings</h3>
+                        <div className="input-group">
+                            <label>Pick a Voice</label>
+                            <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)}>
+                                {VOICES[language].map(v => (
+                                    <option key={v.id} value={v.id}>{v.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="range-controls">
+                            <div className="range-item">
+                                <span>Speed: {voiceSpeed}%</span>
+                                <input type="range" min="-50" max="50" value={voiceSpeed} onChange={(e) => setVoiceSpeed(parseInt(e.target.value))} />
+                            </div>
+                            <div className="range-item">
+                                <span>Pitch: {voicePitch}Hz</span>
+                                <input type="range" min="-20" max="20" value={voicePitch} onChange={(e) => setVoicePitch(parseInt(e.target.value))} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="settings-card">
+                        <h3><Music size={16} /> Atmosphere</h3>
+                        <div className="input-group">
+                            <label>Background Music</label>
+                            <select value={bgMusic} onChange={(e) => setBgMusic(e.target.value)}>
+                                {MUSIC.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                            </select>
+                        </div>
+                        {bgMusic !== 'none' && (
+                            <div className="range-item">
+                                <span>Volume: {Math.round(musicVolume * 100)}%</span>
+                                <input type="range" min="0" max="1" step="0.1" value={musicVolume} onChange={(e) => setMusicVolume(parseFloat(e.target.value))} />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="settings-card">
+                        <h3><Layers size={16} /> Visuals</h3>
+                        <div className="bg-grid">
+                            {BACKGROUNDS.map(bg => (
+                                <button
+                                    key={bg.id}
+                                    className={`bg-option ${bgType === bg.id ? 'active' : ''}`}
+                                    onClick={() => setBgType(bg.id)}
+                                >
+                                    <bg.icon size={16} />
+                                    <span>{bg.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {voiceOnlyUrl && (
+                        <div className="voice-download-card">
+                            <div className="voice-info">
+                                <Activity size={18} />
+                                <div>
+                                    <div className="v-title">AI Voice Generated</div>
+                                    <div className="v-desc">Ready for download</div>
+                                </div>
+                            </div>
+                            <a href={voiceOnlyUrl} target="_blank" download className="v-dl-btn">
+                                <Download size={14} /> Download Voice
+                            </a>
+                        </div>
+                    )}
+
+                    <button
+                        className="voice-only-btn"
+                        onClick={handleGenerateVoiceOnly}
+                        disabled={loading || generatingVoice || !script}
+                    >
+                        {generatingVoice ? <Loader2 className="spinning" /> : <Mic size={18} />}
+                        Generate Voice Only
+                    </button>
+
+                    <button className="generate-final-btn" onClick={handleFinalGenerate} disabled={loading}>
+                        {loading ? <Loader2 className="spinning" /> : <Play size={18} />}
+                        Generate Final Video
+                    </button>
+                    <button className="back-btn" onClick={() => setStep(1)}>Back to Step 1</button>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderStep3 = () => (
+        <div className="wizard-step">
+            {status === 'generating' ? (
+                <div className="generating-fullscreen">
+                    <div className="loader-ring">
+                        <Loader2 size={48} className="spinning" />
+                    </div>
+                    <h2>Creating Cinema Magic...</h2>
+                    <p>{statusMessage}</p>
+                    <div className="pipeline-steps">
+                        {captionsEnabled && <span className="pipeline-tag">🔤 Captions</span>}
+                        {generateAllFormats && <span className="pipeline-tag">📐 Multi-Format</span>}
+                        {dubEnabled && selectedDubLanguages.length > 0 && (
+                            <span className="pipeline-tag">🌍 {selectedDubLanguages.length} Dub(s)</span>
+                        )}
+                    </div>
+                </div>
+            ) : status === 'success' ? (
+                <div className="result-view">
+                    <div className="success-banner">
+                        <CheckCircle2 size={24} />
+                        <h2>Video Generated Successfully!</h2>
+                    </div>
+
+                    {/* Main Video Player */}
+                    <div className="final-video-card">
+                        <video controls autoPlay src={result.data.video_url} className="cinema-player" />
+                        <div className="video-actions">
+                            <a href={result.data.video_url} target="_blank" download className="download-cta">
+                                <Download size={18} /> Download MP4
+                            </a>
+                            <button className="restart-btn" onClick={() => { setStep(1); setResult(null); setStatus('idle'); setFormatResults({}); setDubResults([]); setLastGenerationUsage(null) }}>
+                                <RefreshCcw size={16} /> Create Another
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Generation Cost Summary */}
+                    {lastGenerationUsage && (
+                        <div className="generation-cost-summary">
+                            <div className="cost-summary-header">
+                                <Sparkles size={16} />
+                                <h3>Generation Details & Cost</h3>
+                            </div>
+                            <div className="cost-summary-grid">
+                                <div className="cost-item">
+                                    <div className="cost-label">Script Tokens</div>
+                                    <div className="cost-value">
+                                        {(lastGenerationUsage.script_input_tokens || 0) + (lastGenerationUsage.script_output_tokens || 0)}
+                                    </div>
+                                </div>
+                                <div className="cost-item">
+                                    <div className="cost-label">TTS Characters</div>
+                                    <div className="cost-value">{lastGenerationUsage.tts_characters || script.length}</div>
+                                </div>
+                                <div className="cost-item">
+                                    <div className="cost-label">Value (USD)</div>
+                                    <div className="cost-value highlight-usd">${lastGenerationUsage.cost?.total_paid_usd?.toFixed(4)}</div>
+                                </div>
+                                <div className="cost-item">
+                                    <div className="cost-label">Value (INR)</div>
+                                    <div className="cost-value highlight-inr">₹{lastGenerationUsage.cost?.total_paid_inr?.toFixed(2)}</div>
+                                </div>
+                            </div>
+                            <p className="cost-pricing-note">{lastGenerationUsage.pricing_note}</p>
+                        </div>
+                    )}
+
+                    {/* Post-Processing Tools */}
+                    <div className="post-tools-section">
+                        <h3 className="post-tools-title">
+                            <Settings size={18} /> Post-Processing Tools
+                        </h3>
+
+                        {/* Multi-Format Downloads */}
+                        <div className="post-tool-card">
+                            <div className="post-tool-header">
+                                <Monitor size={18} />
+                                <h4>Multi-Format Export</h4>
+                            </div>
+                            <div className="format-export-grid">
+                                {['16:9', '9:16', '1:1'].map(ratio => {
+                                    const Icon = FORMAT_ICONS[ratio];
+                                    const hasFormat = formatResults[ratio];
+                                    return (
+                                        <div key={ratio} className="format-export-item">
+                                            <div className="format-icon-label">
+                                                <Icon size={20} />
+                                                <span>{ratio}</span>
+                                                <span className="format-label">
+                                                    {ratio === '16:9' ? 'YouTube' : ratio === '9:16' ? 'Reels' : 'Square'}
+                                                </span>
+                                            </div>
+                                            {hasFormat ? (
+                                                <a href={formatResults[ratio]} target="_blank" download className="format-download-btn downloaded">
+                                                    <Download size={14} /> Download
+                                                </a>
+                                            ) : (
+                                                <button
+                                                    className="format-download-btn"
+                                                    onClick={() => handleConvertFormat(ratio)}
+                                                    disabled={postProcessing}
+                                                >
+                                                    {postProcessing ? <Loader2 size={14} className="spinning" /> : <Play size={14} />}
+                                                    Convert
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Add Captions Post */}
+                        {!result.data.captioned_video_url && (
+                            <div className="post-tool-card">
+                                <div className="post-tool-header">
+                                    <Subtitles size={18} />
+                                    <h4>Add Captions</h4>
+                                </div>
+                                <div className="post-tool-body">
+                                    <div className="caption-style-select-mini">
+                                        {CAPTION_STYLES.map(s => (
+                                            <button
+                                                key={s.id}
+                                                className={`mini-style-btn ${captionStyle === s.id ? 'active' : ''}`}
+                                                onClick={() => setCaptionStyle(s.id)}
+                                            >
+                                                {s.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button
+                                        className="post-action-btn"
+                                        onClick={handlePostCaptions}
+                                        disabled={postProcessing}
+                                    >
+                                        {postProcessing ? <Loader2 size={14} className="spinning" /> : <Subtitles size={14} />}
+                                        Burn Captions
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {result.data.captioned_video_url && (
+                            <div className="post-tool-card success-card">
+                                <div className="post-tool-header">
+                                    <CheckCircle2 size={18} />
+                                    <h4>Captioned Video Ready</h4>
+                                </div>
+                                <a href={result.data.captioned_video_url} target="_blank" download className="format-download-btn downloaded">
+                                    <Download size={14} /> Download Captioned
+                                </a>
+                            </div>
+                        )}
+
+                        {/* Auto-Dubbing Section */}
+                        <div className="post-tool-card">
+                            <div className="post-tool-header">
+                                <Globe size={18} />
+                                <h4>Auto-Dubbing</h4>
+                            </div>
+
+                            {dubResults.length > 0 ? (
+                                <div className="dub-results-list">
+                                    {dubResults.map((dub, idx) => (
+                                        <div key={idx} className="dub-result-item">
+                                            <div className="dub-lang-info">
+                                                <span className="dub-lang-flag">
+                                                    {DUB_LANGUAGES.find(l => l.id === dub.language)?.flag || '🌍'}
+                                                </span>
+                                                <span className="dub-lang-name">{dub.language}</span>
+                                            </div>
+                                            <div className="dub-actions">
+                                                <button
+                                                    className="copy-script-btn"
+                                                    onClick={() => copyToClipboard(dub.translated_script, `dub-${idx}`)}
+                                                    title="Copy translated script"
+                                                >
+                                                    {copiedText === `dub-${idx}` ? <Check size={14} /> : <Copy size={14} />}
+                                                </button>
+                                                {dub.audio_url && (
+                                                    <a href={dub.audio_url} target="_blank" download className="dub-audio-btn">
+                                                        <Download size={14} /> Audio
+                                                    </a>
+                                                )}
+                                            </div>
+                                            {dub.translated_script && (
+                                                <div className="dub-script-preview">
+                                                    {dub.translated_script.substring(0, 150)}
+                                                    {dub.translated_script.length > 150 ? '...' : ''}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="post-tool-body">
+                                    <div className="dub-lang-selector">
+                                        <div
+                                            className="dub-lang-trigger"
+                                            onClick={() => setDubLangDropdownOpen(!dubLangDropdownOpen)}
+                                        >
+                                            <span>
+                                                {selectedDubLanguages.length === 0
+                                                    ? 'Select languages...'
+                                                    : `${selectedDubLanguages.length} selected`
+                                                }
+                                            </span>
+                                            {dubLangDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                        </div>
+                                        {dubLangDropdownOpen && (
+                                            <div className="dub-lang-dropdown">
+                                                {DUB_LANGUAGES.filter(l => l.id !== language).map(lang => (
+                                                    <label key={lang.id} className="dub-lang-option">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedDubLanguages.includes(lang.id)}
+                                                            onChange={() => toggleDubLanguage(lang.id)}
+                                                        />
+                                                        <span className="lang-flag">{lang.flag}</span>
+                                                        <span className="lang-name">{lang.name}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button
+                                        className="post-action-btn"
+                                        onClick={() => handlePostDub(selectedDubLanguages)}
+                                        disabled={postProcessing || selectedDubLanguages.length === 0}
+                                    >
+                                        {postProcessing ? <Loader2 size={14} className="spinning" /> : <Globe size={14} />}
+                                        Generate Dubs ({selectedDubLanguages.length})
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="error-view">
+                    <AlertCircle size={48} color="#ef4444" />
+                    <h2>Something went wrong</h2>
+                    <p>{result?.message || 'We hit a snag during rendering. Please check your D-ID credits.'}</p>
+                    <button onClick={() => setStep(2)}>Try Again</button>
+                </div>
+            )}
+        </div>
+    );
+
+    return (
+        <div className="studio-app">
+            <aside className="sidebar">
+                <div className="sidebar-brand">
+                    <Video className="brand-icon" />
+                    <span>Pro Studio</span>
+                </div>
+
+                <nav className="history-list">
+                    <div className="history-header"><History size={14} /> Recent Videos</div>
+                    {history.length === 0 ? (
+                        <div className="history-empty">No projects yet</div>
+                    ) : (
+                        history.map(item => (
+                            <div key={item.id} className="history-item" onClick={() => window.open(item.video_url)}>
+                                <div className="item-topic">{item.topic}</div>
+                                <div className="item-date">{item.date}</div>
+                            </div>
+                        ))
+                    )}
+                </nav>
+
+                {/* Usage Dashboard */}
+                <div className="usage-panel">
+                    <div className="usage-header" onClick={() => setShowUsagePanel(!showUsagePanel)}>
+                        <BarChart3 size={14} />
+                        <span>Usage Dashboard</span>
+                        {showUsagePanel ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </div>
+                    {showUsagePanel && usageData && (
+                        <div className="usage-body">
+                            <div className="usage-stat">
+                                <div className="usage-stat-label">Total Generations</div>
+                                <div className="usage-stat-value">{usageData.total_generations}</div>
+                            </div>
+                            <div className="usage-stat">
+                                <div className="usage-stat-label">Video Generated</div>
+                                <div className="usage-stat-value">{usageData.total_video_seconds}s ({usageData.total_video_minutes} min)</div>
+                            </div>
+                            <div className="usage-stat">
+                                <div className="usage-stat-label">Script Tokens</div>
+                                <div className="usage-stat-value">{usageData.total_script_tokens?.input + usageData.total_script_tokens?.output} total</div>
+                            </div>
+                            <div className="usage-stat">
+                                <div className="usage-stat-label">TTS Characters</div>
+                                <div className="usage-stat-value">{usageData.total_tts_characters?.toLocaleString()}</div>
+                            </div>
+                            <div className="usage-stat">
+                                <div className="usage-stat-label">Dubs / Captions</div>
+                                <div className="usage-stat-value">{usageData.total_dub_translations} / {usageData.total_caption_burns}</div>
+                            </div>
+                            <div className="usage-cost-box">
+                                <div className="usage-cost-row">
+                                    <DollarSign size={14} />
+                                    <span>Est. Cost: ${usageData.total_estimated_cost_usd?.toFixed(4)}</span>
+                                </div>
+                                <div className="usage-cost-row">
+                                    <IndianRupee size={14} />
+                                    <span>≈ ₹{usageData.total_estimated_cost_inr?.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            {usageData.recent_generations?.length > 0 && (
+                                <div className="usage-recent">
+                                    <div className="usage-recent-title">Latest</div>
+                                    {usageData.recent_generations.slice(0, 3).map((gen, i) => (
+                                        <div key={gen.id || i} className="usage-recent-item">
+                                            <div className="usage-recent-topic">{gen.topic?.substring(0, 40)}...</div>
+                                            <div className="usage-recent-meta">
+                                                <span>{gen.time}</span>
+                                                <span>{gen.video_duration_actual}s</span>
+                                                <span>${gen.cost?.total_usd?.toFixed(4)}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <button className="usage-refresh-btn" onClick={fetchUsageData}>
+                                <RefreshCcw size={12} /> Refresh
+                            </button>
+                        </div>
+                    )}
+                    {showUsagePanel && !usageData && (
+                        <div className="usage-body">
+                            <div className="usage-empty">No usage data yet. Generate your first video!</div>
+                        </div>
+                    )}
+                </div>
+            </aside>
+
+            <main className="studio-content">
+                <header className="studio-header">
+                    <div className="step-indicator">
+                        <div className={`step-num ${step >= 1 ? 'active' : ''}`}>1</div>
+                        <div className="step-line" />
+                        <div className={`step-num ${step >= 2 ? 'active' : ''}`}>2</div>
+                        <div className="step-line" />
+                        <div className={`step-num ${step >= 3 ? 'active' : ''}`}>3</div>
+                    </div>
+                </header>
+
+                <div className="wizard-container">
+                    {step === 1 && renderStep1()}
+                    {step === 2 && renderStep2()}
+                    {step === 3 && renderStep3()}
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default VideoGenerator;
