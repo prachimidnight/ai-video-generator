@@ -1,0 +1,26 @@
+# Virtual environment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+
+# Logs and databases
+*.log
+*.sqlite
+database.db
+
+# Temp files and uploads
+temp/
+*.mp3
+*.mp4
+*.srt
+*.jpg
+*.png
+
+# IDE settings
+.vscode/
+.idea/
