@@ -1,0 +1,125 @@
+.custom-loading-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #0b0f19; /* dark cinematic background */
+    z-index: 1000;
+    color: white;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    border-radius: inherit; /* matches parent container if it has rounding */
+}
+
+.custom-loading-content {
+    width: 100%;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+}
+
+.custom-loading-logo-wrapper {
+    position: relative;
+    margin-bottom: 4rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 180px;
+    height: auto;
+}
+
+/* Add the intense glow effect behind the logo seen in the screenshot */
+.custom-loading-logo-wrapper::before {
+    content: '';
+    position: absolute;
+    width: 180%;
+    height: 140%;
+    background: radial-gradient(circle at center, rgba(121, 40, 202, 0.4) 0%, rgba(0, 0, 0, 0) 70%);
+    filter: blur(20px);
+    z-index: 0;
+    animation: custom-pulse-glow 3s infinite alternate;
+}
+
+.custom-loading-logo {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes custom-pulse-glow {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.15); opacity: 1; }
+}
+
+.custom-loading-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+}
+
+.custom-loading-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.prepared-text {
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.25em;
+    color: #ffffff;
+}
+
+.prepared-badge {
+    background-color: rgba(26, 30, 60, 0.8);
+    border: 1px solid rgba(80, 80, 150, 0.4);
+    color: #8b9afc;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+}
+
+.custom-loading-percentage {
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    color: #ffffff;
+}
+
+.custom-loading-bar-container {
+    width: 100%;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    overflow: visible; /* to allow the glow to escape */
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.custom-loading-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #d946ef);
+    border-radius: 2px;
+    transition: width 0.4s ease-out;
+    position: relative;
+    box-shadow: 0 0 15px #d946ef, 0 0 5px #8b5cf6, 4px 0 12px rgba(217, 70, 239, 0.8);
+}
+
+.custom-loading-subtext {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #5a5f6e;
+    letter-spacing: 0.15em;
+    text-align: center;
+}

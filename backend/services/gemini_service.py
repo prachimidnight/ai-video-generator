@@ -13,7 +13,7 @@ class GeminiService:
         self.api_key = os.getenv("GOOGLE_API_KEY")
         self.client = genai.Client(api_key=self.api_key)
 
-    def generate_script(self, topic: str, language: str = "English", duration_seconds: int = 15):
+    def generate_script(self, topic: str, language: str = "English", duration_seconds: int = 15, model_name: str = "gemini-2.5-flash"):
         """
         Uses Gemini AI to generate a video script with explicit Langfuse tracing.
         """
@@ -23,7 +23,6 @@ class GeminiService:
         self.client = genai.Client(api_key=self.api_key)
 
         word_count = int((duration_seconds / 60) * 150)
-        model_name = "gemini-2.5-flash"
 
         langfuse = get_client()
 

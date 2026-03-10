@@ -110,11 +110,12 @@ async def draft_script(
     topic: str = Form(...),
     language: str = Form("English"),
     duration: int = Form(15),
-    user_email: str = Form(...)  # Tracking user
+    user_email: str = Form(...),  # Tracking user
+    script_model: str = Form("gemini-2.5-flash") # The AI model for the script
 ):
     """Step 1: Just generate the script draft."""
-    print(f"Drafting script for topic: {topic} ({language}, {duration}s)")
-    script, in_tokens, out_tokens = generate_script(topic, language, duration)
+    print(f"Drafting script for topic: {topic} ({language}, {duration}s) using {script_model}")
+    script, in_tokens, out_tokens = generate_script(topic, language, duration, model_name=script_model)
     
     return {"script": script, "input_tokens": in_tokens, "output_tokens": out_tokens}
 
@@ -662,6 +663,45 @@ async def get_admin_stats(db: Session = Depends(get_db)):
         }
     }
 
+
+@app.get("/admin/top-users")
+async def get_admin_top_users():
+    """Get the top users by total transaction cost and query count."""
+    gens = usage_service.usage_data.get("generations", [])
+    
+    user_stats = {}
+    for gen in gens:
+        email = gen.get("user", "Unknown")
+        cost = gen.get("cost", {}).get("total_usd", 0.0)
+        
+        if email not in user_stats:
+            # Basic dummy resolving of names from emails (since usage_data stores emails directly)
+            parts = email.split('@')[0].split('.')
+            name = " ".join([p.capitalize() for p in parts]) if len(parts)>0 else email
+            initials = "".join([p[0].upper() for p in parts])[:2] if len(parts)>0 else "U"
+
+            user_stats[email] = {
+                "name": name,
+                "initials": initials,
+                "queries": 0,
+                "total_cost_usd": 0.0,
+                "total_cost_inr": 0.0
+            }
+        
+        user_stats[email]["queries"] += 1
+        user_stats[email]["total_cost_usd"] += cost
+        user_stats[email]["total_cost_inr"] += cost * 83.0
+
+    # Convert to list and sort by queries (descending)
+    sorted_users = sorted(user_stats.values(), key=lambda x: x["queries"], reverse=True)
+    
+    # Take top 5
+    top_users = sorted_users[:5]
+    
+    return {
+        "status": "success",
+        "data": top_users
+    }
 
 @app.get("/admin/analytics/weekly")
 async def get_weekly_analytics():

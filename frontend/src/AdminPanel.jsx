@@ -35,6 +35,7 @@ import {
     Instagram
 } from 'lucide-react';
 import './AdminPanel.css';
+import './AdminAIModel.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -59,6 +60,7 @@ const AdminPanel = ({ navigate }) => {
         modelDistribution: []
     });
     const [transactions, setTransactions] = useState([]);
+    const [topAiUsers, setTopAiUsers] = useState([]);
     const [systemStats, setSystemStats] = useState({
         total_users: 0,
         total_generations: 0,
@@ -79,7 +81,8 @@ const AdminPanel = ({ navigate }) => {
                     fetchUsers(),
                     fetchAnalytics(),
                     fetchTransactions(),
-                    fetchSystemStats()
+                    fetchSystemStats(),
+                    fetchTopAiUsers()
                 ]);
             } catch (err) {
                 console.error("Data loading error:", err);
@@ -104,6 +107,18 @@ const AdminPanel = ({ navigate }) => {
             });
         } catch (error) {
             console.error('Failed to fetch analytics:', error);
+        }
+    };
+
+    const fetchTopAiUsers = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/admin/top-users`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                setTopAiUsers(data.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch top AI users:', error);
         }
     };
 
@@ -298,6 +313,12 @@ const AdminPanel = ({ navigate }) => {
                     onClick={() => setView('analytics')}
                 >
                     <BarChart3 size={18} /> Detailed Analytics
+                </button>
+                <button
+                    className={`admin-nav-item ${view === 'ai_models' ? 'active' : ''}`}
+                    onClick={() => setView('ai_models')}
+                >
+                    <Cpu size={18} /> AI Models
                 </button>
                 <button
                     className={`admin-nav-item ${view === 'credits' ? 'active' : ''}`}
@@ -719,6 +740,184 @@ const AdminPanel = ({ navigate }) => {
         </div>
     );
 
+    const renderAIModels = () => (
+        <div className="admin-view animate-fade">
+            <header className="admin-header">
+                <div>
+                    <h1>AI Model Settings</h1>
+                    <p>Manage AI models and track usage costs.</p>
+                </div>
+            </header>
+
+            <div className="ai-models-grid-top">
+                <div className="admin-section active-model-card">
+                    <div className="card-top-row">
+                        <div className="card-title"><Cpu size={16} /> Current Active Model</div>
+                        <div className="active-badge">ACTIVE</div>
+                    </div>
+                    <div className="model-primary-name">Gemini 3 Flash Preview</div>
+                    <div className="model-provider">Google</div>
+                    <div className="model-tags">
+                        <span className="model-tag"><Zap size={12} /> Fast Inference</span>
+                        <span className="model-tag"><Globe size={12} /> Function Calling</span>
+                    </div>
+                </div>
+
+                <div className="admin-section">
+                    <div className="card-title"><DollarSign size={16} /> Live Pricing</div>
+                    <div className="pricing-split">
+                        <div className="price-item">
+                            <div className="price-label">Input</div>
+                            <div className="price-value">$0.5</div>
+                            <div className="price-sub">/ 1M tokens</div>
+                        </div>
+                        <div className="price-item align-right">
+                            <div className="price-label">Output</div>
+                            <div className="price-value">$3</div>
+                            <div className="price-sub">/ 1M tokens</div>
+                        </div>
+                    </div>
+                    <div className="pricing-note">
+                        <AlertCircle size={14} /> Est. cost per query: <span className="highlight-purple">$0.002-0.008</span>
+                    </div>
+                </div>
+
+                <div className="admin-section">
+                    <div className="card-top-row">
+                        <div className="card-title"><Activity size={16} /> Monthly Budget</div>
+                        <button className="icon-btn-small"><Edit size={14} /></button>
+                    </div>
+                    <div className="budget-stats">
+                        <div className="budget-amounts">$0.01 / $100</div>
+                        <div className="budget-inr">₹1 / ₹8225</div>
+                        <div className="budget-pct">0.0% used</div>
+                    </div>
+                    <div className="budget-progress-bg">
+                        <div className="budget-progress-fill" style={{ width: '2%' }}></div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="admin-stats-grid ai-stats-row">
+                <div className="ai-stat-card">
+                    <div className="stat-label-center">TOTAL QUERIES (ALL TIME)</div>
+                    <div className="stat-value-center">5</div>
+                </div>
+                <div className="ai-stat-card">
+                    <div className="stat-label-center">QUERIES TODAY</div>
+                    <div className="stat-value-center">4</div>
+                </div>
+                <div className="ai-stat-card">
+                    <div className="stat-label-center">TOTAL COST (THIS MONTH)</div>
+                    <div className="stat-value-center">$0.01</div>
+                    <div className="stat-sub-center">₹0.82</div>
+                </div>
+                <div className="ai-stat-card">
+                    <div className="stat-label-center">TOKENS PROCESSED</div>
+                    <div className="stat-value-center">0.01M</div>
+                </div>
+            </div>
+
+            <div className="ai-models-grid-bottom">
+                <div className="admin-section table-section">
+                    <div className="section-header">
+                        <div className="header-with-icon">
+                            <Users size={18} />
+                            <h3>Top Users (This Month)</h3>
+                        </div>
+                    </div>
+                    <table className="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Queries</th>
+                                <th>Cost ($ / ₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {topAiUsers.map((user, idx) => {
+                                const colors = ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+                                const bgColor = colors[idx % colors.length];
+
+                                return (
+                                    <tr key={idx}>
+                                        <td>
+                                            <div className="user-profile">
+                                                <div className="user-avatar small" style={{ background: bgColor }}>
+                                                    {user.initials}
+                                                </div>
+                                                <div className="user-info">
+                                                    <span className="user-name">{user.name}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{user.queries}</td>
+                                        <td>
+                                            <div className="cost-stack">
+                                                <span>${user.total_cost_usd.toFixed(4)}</span>
+                                                <span className="sub-cost">₹{user.total_cost_inr.toFixed(2)}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {topAiUsers.length === 0 && (
+                                <tr>
+                                    <td colSpan="3" style={{ textAlign: 'center', padding: '2rem', color: 'var(--admin-text-dim)' }}>
+                                        No model usage recorded yet.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="admin-section">
+                    <div className="section-header">
+                        <div className="header-with-icon">
+                            <ArrowLeft size={18} className="rotate-icon" />
+                            <h3>Switch AI Model</h3>
+                        </div>
+                    </div>
+
+                    <div className="model-list">
+                        <div className="model-list-item">
+                            <div className="model-item-info">
+                                <h4>Gemini 1.5 Pro</h4>
+                                <div className="model-item-cost">Input: $1.25 | Output: $5</div>
+                            </div>
+                            <div className="radio-circle"></div>
+                        </div>
+
+                        <div className="model-list-item active">
+                            <div className="model-item-info">
+                                <h4>Gemini 3 Flash Preview <span className="code-id">gemini-2.5-flash</span></h4>
+                                <div className="model-item-cost">Input: $0.075 | Output: $0.30</div>
+                            </div>
+                            <div className="radio-circle active"><div className="radio-inner"></div></div>
+                        </div>
+
+                        <div className="model-list-item">
+                            <div className="model-item-info">
+                                <h4>Veo Fast Generate <span className="code-id">veo-3.1-fast-generate-preview</span></h4>
+                                <div className="model-item-cost">Video Generation (Fast)</div>
+                            </div>
+                            <div className="radio-circle"></div>
+                        </div>
+
+                        <div className="model-list-item">
+                            <div className="model-item-info">
+                                <h4>Veo High Quality <span className="code-id">veo-3.1-generate-preview</span></h4>
+                                <div className="model-item-cost">Video Generation (Standard)</div>
+                            </div>
+                            <div className="radio-circle"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     const renderDeleteModal = () => (
         <div className="admin-modal-overlay">
             <div className="admin-modal delete-modal animate-fade">
@@ -805,6 +1004,7 @@ const AdminPanel = ({ navigate }) => {
                     </div>
                 )}
                 {view === 'analytics' && renderAnalytics()}
+                {view === 'ai_models' && renderAIModels()}
                 {view === 'credits' && renderTransactions()}
                 {view === 'settings' && renderSettings()}
             </main>

@@ -1,0 +1,335 @@
+/* --- AI Models Panel Styles (Light Theme) --- */
+.ai-models-grid-top {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.ai-models-grid-bottom {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.card-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--admin-text-dim);
+    font-weight: 700;
+}
+
+/* Active Model Card (Keep Highlighted) */
+.active-model-card {
+    background: white;
+    border: 1px solid var(--admin-primary);
+    color: var(--admin-text);
+    box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1);
+}
+
+.active-model-card .card-title {
+    color: var(--admin-primary);
+}
+
+.active-badge {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.model-primary-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--admin-text);
+    margin-bottom: 0.25rem;
+}
+
+.model-provider {
+    font-size: 0.8rem;
+    color: var(--admin-text-dim);
+    margin-bottom: 1.5rem;
+}
+
+.model-tags {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.model-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--admin-primary);
+}
+
+/* Live Pricing Card (Light) */
+.pricing-split {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.price-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.price-item.align-right {
+    align-items: flex-end;
+}
+
+.price-label {
+    font-size: 0.75rem;
+    color: var(--admin-text-dim);
+    margin-bottom: 0.25rem;
+}
+
+.price-value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--admin-text);
+    margin-bottom: 0.1rem;
+}
+
+.price-sub {
+    font-size: 0.65rem;
+    color: #64748b;
+}
+
+.pricing-note {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--admin-text-dim);
+    background: #f8fafc;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--admin-border);
+}
+
+.highlight-purple {
+    color: var(--admin-primary);
+    font-weight: 700;
+}
+
+/* Monthly Budget Card (Light) */
+.icon-btn-small {
+    background: #f1f5f9;
+    border: none;
+    color: var(--admin-text-dim);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.icon-btn-small:hover {
+    background: #e2e8f0;
+}
+
+.budget-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 1rem 0;
+}
+
+.budget-amounts {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--admin-text);
+}
+
+.budget-inr {
+    font-size: 0.75rem;
+    color: var(--admin-text-dim);
+    margin-bottom: 0.5rem;
+}
+
+.budget-pct {
+    font-size: 0.7rem;
+    color: #64748b;
+}
+
+.budget-progress-bg {
+    width: 100%;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+}
+
+.budget-progress-fill {
+    height: 100%;
+    background: var(--admin-primary);
+    border-radius: 2px;
+}
+
+/* AI Stats Row (Light) */
+.ai-stats-row {
+    grid-template-columns: repeat(4, 1fr) !important;
+}
+
+.ai-stat-card {
+    background: white !important;
+    border: 1px solid var(--admin-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem !important;
+    border-radius: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.stat-label-center {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--admin-text-dim);
+    margin-bottom: 0.5rem;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.stat-value-center {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--admin-text);
+    text-align: center;
+}
+
+.stat-sub-center {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 0.25rem;
+}
+
+/* Switch Model Section (Light) */
+.switch-model-section h3 {
+    color: var(--admin-text);
+}
+
+.rotate-icon {
+    transform: rotate(180deg);
+    color: var(--admin-text);
+}
+
+.model-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.model-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8fafc;
+}
+
+.model-list-item:hover {
+    background: white;
+    border-color: #cbd5e1;
+}
+
+.model-list-item.active {
+    border-color: var(--admin-primary);
+    background: white;
+    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.05);
+}
+
+.model-item-info h4 {
+    color: var(--admin-text);
+    font-size: 0.9rem;
+    margin: 0 0 0.25rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.model-item-info h4.active-text {
+    color: var(--admin-primary);
+}
+
+.code-id {
+    font-size: 0.65rem;
+    font-family: monospace;
+    color: var(--admin-text-dim);
+    background: #f1f5f9;
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.model-list-item.active .code-id {
+    background: #f3e8ff;
+    color: #7e22ce;
+}
+
+.model-item-cost {
+    font-size: 0.75rem;
+    color: var(--admin-text-dim);
+}
+
+.radio-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--admin-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.radio-circle.active {
+    border-color: var(--admin-primary);
+}
+
+.radio-inner {
+    width: 10px;
+    height: 10px;
+    background: var(--admin-primary);
+    border-radius: 50%;
+}
+
+/* Cost Stack for Tables */
+.cost-stack {
+    display: flex;
+    flex-direction: column;
+}
+
+.sub-cost {
+    font-size: 0.75rem;
+    color: var(--admin-text-dim);
+}

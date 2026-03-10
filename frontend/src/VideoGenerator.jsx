@@ -35,10 +35,11 @@ import {
     IndianRupee,
     DollarSign,
     Activity,
-    Mic,
-    LogOut
+    LogOut,
+    Cpu
 } from 'lucide-react';
 import './VideoGenerator.css';
+import LoadingScreen from './LoadingScreen';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -216,6 +217,7 @@ const VideoGenerator = ({ navigate }) => {
     const [musicVolume, setMusicVolume] = useState(0.2);
     const [aspectRatio, setAspectRatio] = useState("16:9");
     const [generationEngine, setGenerationEngine] = useState("gemini");
+    const [scriptModel, setScriptModel] = useState('gemini-2.5-flash');
 
     // Caption State
     const [captionsEnabled, setCaptionsEnabled] = useState(false);
@@ -376,6 +378,7 @@ const VideoGenerator = ({ navigate }) => {
             formData.append('language', language);
             formData.append('duration', duration);
             formData.append('user_email', user.email);
+            formData.append('script_model', scriptModel);
 
             const response = await fetch(`${API_BASE_URL}/draft-script`, {
                 method: 'POST',
@@ -593,7 +596,19 @@ const VideoGenerator = ({ navigate }) => {
                     />
                 </div>
 
-                <div className="grid-3">
+                <div className="grid-2">
+                    <div className="input-group">
+                        <label><Cpu size={14} /> AI Script Engine</label>
+                        <CustomSelect
+                            value={scriptModel}
+                            onChange={setScriptModel}
+                            options={[
+                                { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+                                { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+                                { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+                            ]}
+                        />
+                    </div>
                     <div className="input-group">
                         <label><Languages size={14} /> Language</label>
                         <CustomSelect
@@ -876,14 +891,14 @@ const VideoGenerator = ({ navigate }) => {
                                     onClick={() => setVeoQuality('fast')}
                                 >
                                     <div className="q-name">Veo 3.1 Fast</div>
-                                    <div className="q-desc">~73s Wait</div>
+                                    <div className="q-desc code-desc">veo-3.1-fast-generate-preview</div>
                                 </button>
                                 <button
                                     className={`q-btn ${veoQuality === 'standard' ? 'active' : ''}`}
                                     onClick={() => setVeoQuality('standard')}
                                 >
                                     <div className="q-name">Veo 3.1 Standard</div>
-                                    <div className="q-desc">~160s Wait</div>
+                                    <div className="q-desc code-desc">veo-3.1-generate-preview</div>
                                 </button>
                             </div>
                         </div>
@@ -988,20 +1003,7 @@ const VideoGenerator = ({ navigate }) => {
     const renderStep3 = () => (
         <div className="wizard-step">
             {status === 'generating' ? (
-                <div className="generating-fullscreen">
-                    <div className="loader-ring">
-                        <Loader2 size={48} className="spinning" />
-                    </div>
-                    <h2>Creating Cinema Magic...</h2>
-                    <p>{statusMessage}</p>
-                    <div className="pipeline-steps">
-                        {captionsEnabled && <span className="pipeline-tag">🔤 Captions</span>}
-                        {generateAllFormats && <span className="pipeline-tag">📐 Multi-Format</span>}
-                        {dubEnabled && selectedDubLanguages.length > 0 && (
-                            <span className="pipeline-tag">🌍 {selectedDubLanguages.length} Dub(s)</span>
-                        )}
-                    </div>
-                </div>
+                <LoadingScreen message="SECURE ENTERPRISE ENVIRONMENT" />
             ) : status === 'success' ? (
                 <div className="result-view">
                     <div className="success-banner">
