@@ -7,3 +7,9 @@ requests
 edge-tts
 Pillow
 tenacity
+sqlalchemy
+pymysql
+passlib
+bcrypt
+email-validator
+langfuse

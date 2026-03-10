@@ -21,32 +21,20 @@ USAGE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "usage_log
 # IST timezone
 IST = timezone(timedelta(hours=5, minutes=30))
 
-# Pricing (USD) - Updated Feb 2026
+# Pricing - Now tracked primary via Langfuse
+# This table is kept for local historical logging if needed
 PRICING = {
-    "gemini-1.5-flash-latest": {
-        "input_per_1k_tokens": 0.0,       # Free tier
-        "output_per_1k_tokens": 0.0,       # Free tier
-        "paid_input_per_1k": 0.000075,     # If paid
-        "paid_output_per_1k": 0.0003,
-    },
     "gemini-2.0-flash": {
-        "input_per_1k_tokens": 0.0001,
-        "output_per_1k_tokens": 0.0004,
+        "input_per_1k_tokens": 0.0,       # Tracked in Langfuse
+        "output_per_1k_tokens": 0.0,
     },
     "veo-3.1-fast-generate-preview": {
-        "per_second": 0.35,                # $0.35/sec on pay-as-you-go
-        "free_tier": True,                 # Preview = free quota
-    },
-    "veo-2.0-generate-001": {
-        "per_second": 0.35,
-        "free_tier": False,
+        "per_second": 0.0,                # Tracked in Langfuse
+        "free_tier": True,
     },
     "d-id": {
-        "per_credit": 0.0,               # Included in D-ID plan
+        "per_credit": 0.0,
         "credits_per_video": 1,
-    },
-    "edge-tts": {
-        "per_character": 0.0,             # Free
     }
 }
 
@@ -84,13 +72,6 @@ class UsageService:
         except Exception as e:
             print(f"ERROR: Failed to save usage data: {e}")
 
-    def _estimate_tokens(self, text: str) -> int:
-        """Rough token estimate: ~1 token per 4 characters for English, ~1 per 2 for Hindi/other."""
-        if not text:
-            return 0
-        # Simple heuristic
-        return max(1, len(text) // 3)
-
     def log_generation(
         self,
         topic: str,
@@ -117,15 +98,6 @@ class UsageService:
         Returns the generation log entry.
         """
         now = datetime.now(IST)
-        
-        # Auto-estimate tokens if not provided
-        if script_input_tokens == 0:
-            # Estimate prompt tokens (topic + instructions)
-            prompt_text = f"Write a video script about {topic}. Duration: {duration_requested}s. Language: {language}."
-            script_input_tokens = self._estimate_tokens(prompt_text)
-        
-        if script_output_tokens == 0 and script:
-            script_output_tokens = self._estimate_tokens(script)
         
         if tts_characters == 0 and script:
             tts_characters = len(script)
@@ -218,7 +190,8 @@ class UsageService:
         """Calculate estimated costs for a generation."""
         
         # Script cost (Gemini Flash)
-        flash_pricing = PRICING.get("gemini-1.5-flash-latest", {})
+        # Use gemini-flash-latest as default since it's the most reliable alias in this environment
+        flash_pricing = PRICING.get("gemini-flash-latest", {})
         script_input_cost = (script_input_tokens / 1000) * flash_pricing.get("input_per_1k_tokens", 0)
         script_output_cost = (script_output_tokens / 1000) * flash_pricing.get("output_per_1k_tokens", 0)
         script_cost = script_input_cost + script_output_cost

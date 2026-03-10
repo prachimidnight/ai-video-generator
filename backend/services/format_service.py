@@ -14,6 +14,12 @@ import uuid
 import subprocess
 
 TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp")
+FFMPEG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv/bin/static_ffmpeg")
+FFPROBE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv/bin/static_ffprobe")
+
+if not os.path.exists(FFMPEG_PATH):
+    FFMPEG_PATH = "ffmpeg"
+    FFPROBE_PATH = "ffprobe"
 
 
 # Aspect ratio configs with target resolutions
@@ -44,7 +50,7 @@ def get_video_info(video_path: str) -> dict:
     try:
         result = subprocess.run(
             [
-                "ffprobe", "-v", "quiet",
+                FFPROBE_PATH, "-v", "quiet",
                 "-show_entries", "stream=width,height,duration",
                 "-show_entries", "format=duration",
                 "-of", "json",
@@ -133,7 +139,7 @@ def convert_format(
             )
 
         cmd = [
-            "ffmpeg", "-y",
+            FFMPEG_PATH, "-y",
             "-i", video_path,
             "-vf", vf,
             "-c:v", "libx264",

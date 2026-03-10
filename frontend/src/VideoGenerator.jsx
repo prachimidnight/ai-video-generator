@@ -35,7 +35,8 @@ import {
     IndianRupee,
     DollarSign,
     Activity,
-    Mic
+    Mic,
+    LogOut
 } from 'lucide-react';
 import './VideoGenerator.css';
 
@@ -196,7 +197,7 @@ const CustomSelect = ({ value, onChange, options, icon: Icon }) => {
     );
 };
 
-const VideoGenerator = () => {
+const VideoGenerator = ({ navigate }) => {
     // Pipeline State
     const [step, setStep] = useState(1);
     const [topic, setTopic] = useState('');
@@ -235,6 +236,7 @@ const VideoGenerator = () => {
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState('idle');
     const [statusMessage, setStatusMessage] = useState('');
+    const [activeModule, setActiveModule] = useState('studio');
     const [result, setResult] = useState(null);
     const [history, setHistory] = useState([]);
 
@@ -244,34 +246,52 @@ const VideoGenerator = () => {
     const [dubResults, setDubResults] = useState([]);
     const [copiedText, setCopiedText] = useState(null);
 
-    // Usage tracking state
-    const [usageData, setUsageData] = useState(null);
-    const [showUsagePanel, setShowUsagePanel] = useState(false);
+    // Subscription State
+    const handleLogout = async () => {
+        try {
+            await fetch(`${API_BASE_URL}/logout`, { method: 'POST' });
+            localStorage.removeItem('user');
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            localStorage.removeItem('user');
+            navigate('/login');
+        }
+    };
     const [lastGenerationUsage, setLastGenerationUsage] = useState(null);
+    // Subscription State
+    const [subscriptionTier, setSubscriptionTier] = useState('free');
+    const [showPricingModal, setShowPricingModal] = useState(false);
+    const [credits, setCredits] = useState({ remaining: 0, limit: 2 });
+
+    const fetchCreditData = async () => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) return;
+            const user = JSON.parse(userStr);
+
+            const res = await fetch(`${API_BASE_URL}/user/credits?email=${user.email}`);
+            const data = await res.json();
+            setCredits({
+                remaining: data.available_credits,
+                limit: data.subscription_tier === 'pro' ? 100 : 2
+            });
+            setSubscriptionTier(data.subscription_tier);
+        } catch (e) {
+            console.log('Credit data not available');
+        }
+    };
 
     // Character state
     const [selectedCharacterId, setSelectedCharacterId] = useState(null);
     const [voiceOnlyUrl, setVoiceOnlyUrl] = useState(null);
     const [generatingVoice, setGeneratingVoice] = useState(false);
 
-    // Load History & Usage
     useEffect(() => {
         const saved = localStorage.getItem('video_history');
         if (saved) setHistory(JSON.parse(saved));
-        fetchUsageData();
+        fetchCreditData();
     }, []);
-
-    const fetchUsageData = async () => {
-        try {
-            const res = await fetch(`${API_BASE_URL}/usage`);
-            const data = await res.json();
-            if (data.status === 'success') {
-                setUsageData(data.data);
-            }
-        } catch (e) {
-            console.log('Usage data not available');
-        }
-    };
 
     // Update voice when language changes
     useEffect(() => {
@@ -351,9 +371,11 @@ const VideoGenerator = () => {
         setLoading(true);
         try {
             const formData = new FormData();
+            const user = JSON.parse(localStorage.getItem('user'));
             formData.append('topic', topic);
             formData.append('language', language);
             formData.append('duration', duration);
+            formData.append('user_email', user.email);
 
             const response = await fetch(`${API_BASE_URL}/draft-script`, {
                 method: 'POST',
@@ -371,6 +393,11 @@ const VideoGenerator = () => {
     };
 
     const handleFinalGenerate = async () => {
+        if (credits.remaining <= 0) {
+            setShowPricingModal(true);
+            return;
+        }
+
         setLoading(true);
         setStatus('generating');
         setStatusMessage('Initializing generation pipeline...');
@@ -390,6 +417,9 @@ const VideoGenerator = () => {
             formData.append('aspect_ratio', aspectRatio);
             formData.append('engine', generationEngine);
             formData.append('veo_quality', veoQuality);
+
+            const user = JSON.parse(localStorage.getItem('user'));
+            formData.append('user_email', user.email);
 
             // Caption params
             formData.append('captions_enabled', captionsEnabled ? 'true' : 'false');
@@ -416,6 +446,7 @@ const VideoGenerator = () => {
                 return;
             }
             setResult(data);
+            fetchCreditData(); // Refresh credits after deduction
 
             // Extract extra results
             if (data.data?.format_urls) {
@@ -433,8 +464,9 @@ const VideoGenerator = () => {
             });
             setStep(3);
             setStatus('success');
-            // Refresh usage data
-            fetchUsageData();
+            // Refresh credits after deduction
+            fetchCreditData();
+            setCredits(prev => ({ ...prev, remaining: Math.max(0, prev.remaining - 1) }));
 
             // Set last generation usage
             if (data.data?.usage) {
@@ -546,9 +578,8 @@ const VideoGenerator = () => {
     const renderStep1 = () => (
         <div className="wizard-step">
             <div className="section-header">
-                <Sparkles className="header-icon" />
                 <h2>Create Your Masterpiece</h2>
-                <p>Start with a topic and your character photo.</p>
+                {/* <p>Start with a topic and your character photo.</p> */}
             </div>
 
             <div className="modern-form">
@@ -824,23 +855,13 @@ const VideoGenerator = () => {
                         <h3><Zap size={16} /> Generation Engine</h3>
                         <div className="engine-toggle-grid">
                             <button
-                                className={`engine-btn ${generationEngine === 'did' ? 'active' : ''}`}
-                                onClick={() => setGenerationEngine('did')}
-                            >
-                                <div className="engine-icon-wrap"><User size={20} /></div>
-                                <div className="engine-info">
-                                    <div className="engine-name">D-ID</div>
-                                    <div className="engine-desc">Fast Talking Head</div>
-                                </div>
-                            </button>
-                            <button
-                                className={`engine-btn ${generationEngine === 'gemini' ? 'active' : ''}`}
-                                onClick={() => setGenerationEngine('gemini')}
+                                className="engine-btn active"
+                                disabled
                             >
                                 <div className="engine-icon-wrap"><Sparkles size={20} /></div>
                                 <div className="engine-info">
                                     <div className="engine-name">Gemini Veo</div>
-                                    <div className="engine-desc">Cinematic Video</div>
+                                    <div className="engine-desc">Cinematic Video (Selected)</div>
                                 </div>
                             </button>
                         </div>
@@ -1208,19 +1229,106 @@ const VideoGenerator = () => {
                 <div className="error-view">
                     <AlertCircle size={48} color="#ef4444" />
                     <h2>Something went wrong</h2>
-                    <p>{result?.message || 'We hit a snag during rendering. Please check your D-ID credits.'}</p>
+                    <p>{result?.message || 'We hit a snag during rendering. Please try again or check your API configuration.'}</p>
                     <button onClick={() => setStep(2)}>Try Again</button>
                 </div>
             )}
         </div>
     );
 
+    const renderPricingModal = () => {
+        if (!showPricingModal) return null;
+
+        return (
+            <div className="pricing-overlay" onClick={() => setShowPricingModal(false)}>
+                <div className="pricing-modal" onClick={e => e.stopPropagation()}>
+                    <button className="modal-close" onClick={() => setShowPricingModal(false)}><X size={20} /></button>
+
+                    <div className="pricing-header">
+                        <h2>Choose Your Plan</h2>
+                        <p>Unlock the full power of Social Stamp for your brand.</p>
+                    </div>
+
+                    <div className="pricing-grid">
+                        <div className="pricing-card">
+                            <div className="plan-lvl">Basic</div>
+                            <div className="plan-price">₹0 <div>/ month</div></div>
+                            <ul className="plan-features">
+                                <li><Check size={16} /> 2 Videos Per Day</li>
+                                <li><Check size={16} /> 720p Resolution</li>
+                                <li><Check size={16} /> Standard Voices</li>
+                                <li><Check size={16} /> Basic Support</li>
+                            </ul>
+                            <button className="plan-btn" onClick={() => setShowPricingModal(false)}>Current Plan</button>
+                        </div>
+
+                        <div className="pricing-card featured">
+                            <div className="featured-badge">Most Popular</div>
+                            <div className="plan-lvl">Professional</div>
+                            <div className="plan-price">₹2,499 <div>/ month</div></div>
+                            <ul className="plan-features">
+                                <li><Check size={16} /> 50 Videos Per Day</li>
+                                <li><Check size={16} /> 1080p Full HD</li>
+                                <li><Check size={16} /> All Premium Voices</li>
+                                <li><Check size={16} /> Advanced Captions</li>
+                                <li><Check size={16} /> Auto-Dubbing</li>
+                                <li><Check size={16} /> Priority Support</li>
+                            </ul>
+                            <button className="plan-btn primary" onClick={() => {
+                                setSubscriptionTier('pro');
+                                setCredits({ remaining: 50, limit: 50 });
+                                setShowPricingModal(false);
+                            }}>Upgrade Now</button>
+                        </div>
+
+                        <div className="pricing-card">
+                            <div className="plan-lvl">Agency</div>
+                            <div className="plan-price">₹7,999 <div>/ month</div></div>
+                            <ul className="plan-features">
+                                <li><Check size={16} /> Unlimited Videos</li>
+                                <li><Check size={16} /> 4K Ultra HD</li>
+                                <li><Check size={16} /> Team Access</li>
+                                <li><Check size={16} /> API Integration</li>
+                                <li><Check size={16} /> White-label Output</li>
+                                <li><Check size={16} /> 24/7 Dedicated Support</li>
+                            </ul>
+                            <button className="plan-btn" onClick={() => {
+                                setSubscriptionTier('enterprise');
+                                setCredits({ remaining: 9999, limit: 9999 });
+                                setShowPricingModal(false);
+                            }}>Contact Sales</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="studio-app">
+            {renderPricingModal()}
             <aside className="sidebar">
                 <div className="sidebar-brand">
-                    <Video className="brand-icon" />
-                    <span>Pro Studio</span>
+                    <img src="/logo.png" alt="Logo" className="brand-logo" />
+                    <div className="brand-text">
+                        <span className="brand-title-top">SOCIAL</span>
+                        <span className="brand-title-bottom">STAMP</span>
+                    </div>
+                </div>
+
+                <div className="nav-menu">
+                    <div
+                        className={`nav-item ${activeModule === 'studio' ? 'active' : ''}`}
+                        onClick={() => setActiveModule('studio')}
+                    >
+                        <Monitor size={16} /> Content Studio
+                    </div>
+                    <div
+                        className="nav-item subscription-btn"
+                        onClick={() => setShowPricingModal(true)}
+                    >
+                        <Zap size={16} color="#fbbf24" fill="#fbbf24" /> Upgrade to Pro
+                    </div>
                 </div>
 
                 <nav className="history-list">
@@ -1237,89 +1345,63 @@ const VideoGenerator = () => {
                     )}
                 </nav>
 
-                {/* Usage Dashboard */}
-                <div className="usage-panel">
-                    <div className="usage-header" onClick={() => setShowUsagePanel(!showUsagePanel)}>
-                        <BarChart3 size={14} />
-                        <span>Usage Dashboard</span>
-                        {showUsagePanel ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                <div className="credit-card">
+                    <div className="credit-info">
+                        <span>Daily Credits</span>
+                        <span>{credits.remaining} / {credits.limit}</span>
                     </div>
-                    {showUsagePanel && usageData && (
-                        <div className="usage-body">
-                            <div className="usage-stat">
-                                <div className="usage-stat-label">Total Generations</div>
-                                <div className="usage-stat-value">{usageData.total_generations}</div>
-                            </div>
-                            <div className="usage-stat">
-                                <div className="usage-stat-label">Video Generated</div>
-                                <div className="usage-stat-value">{usageData.total_video_seconds}s ({usageData.total_video_minutes} min)</div>
-                            </div>
-                            <div className="usage-stat">
-                                <div className="usage-stat-label">Script Tokens</div>
-                                <div className="usage-stat-value">{usageData.total_script_tokens?.input + usageData.total_script_tokens?.output} total</div>
-                            </div>
-                            <div className="usage-stat">
-                                <div className="usage-stat-label">TTS Characters</div>
-                                <div className="usage-stat-value">{usageData.total_tts_characters?.toLocaleString()}</div>
-                            </div>
-                            <div className="usage-stat">
-                                <div className="usage-stat-label">Dubs / Captions</div>
-                                <div className="usage-stat-value">{usageData.total_dub_translations} / {usageData.total_caption_burns}</div>
-                            </div>
-                            <div className="usage-cost-box">
-                                <div className="usage-cost-row">
-                                    <DollarSign size={14} />
-                                    <span>Est. Cost: ${usageData.total_estimated_cost_usd?.toFixed(4)}</span>
-                                </div>
-                                <div className="usage-cost-row">
-                                    <IndianRupee size={14} />
-                                    <span>≈ ₹{usageData.total_estimated_cost_inr?.toFixed(2)}</span>
-                                </div>
-                            </div>
-                            {usageData.recent_generations?.length > 0 && (
-                                <div className="usage-recent">
-                                    <div className="usage-recent-title">Latest</div>
-                                    {usageData.recent_generations.slice(0, 3).map((gen, i) => (
-                                        <div key={gen.id || i} className="usage-recent-item">
-                                            <div className="usage-recent-topic">{gen.topic?.substring(0, 40)}...</div>
-                                            <div className="usage-recent-meta">
-                                                <span>{gen.time}</span>
-                                                <span>{gen.video_duration_actual}s</span>
-                                                <span>${gen.cost?.total_usd?.toFixed(4)}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <button className="usage-refresh-btn" onClick={fetchUsageData}>
-                                <RefreshCcw size={12} /> Refresh
-                            </button>
-                        </div>
-                    )}
-                    {showUsagePanel && !usageData && (
-                        <div className="usage-body">
-                            <div className="usage-empty">No usage data yet. Generate your first video!</div>
-                        </div>
-                    )}
+                    <div className="credit-bar">
+                        <div
+                            className="credit-fill"
+                            style={{ width: `${(credits.remaining / credits.limit) * 100}%` }}
+                        ></div>
+                    </div>
+                    <button className="upgrade-link" onClick={() => setShowPricingModal(true)}>
+                        <Zap size={12} /> Get More Credits
+                    </button>
                 </div>
+
             </aside>
 
-            <main className="studio-content">
-                <header className="studio-header">
-                    <div className="step-indicator">
-                        <div className={`step-num ${step >= 1 ? 'active' : ''}`}>1</div>
-                        <div className="step-line" />
-                        <div className={`step-num ${step >= 2 ? 'active' : ''}`}>2</div>
-                        <div className="step-line" />
-                        <div className={`step-num ${step >= 3 ? 'active' : ''}`}>3</div>
+            <main className="main-content">
+                <header className="top-header">
+                    <div className="header-breadcrumbs">
+                        <span>SOCIAL STAMP</span> /
+                        <span>{activeModule === 'studio' ? 'Content Studio' : 'Dashboard'}</span>
+                    </div>
+                    <div className="header-actions">
+                        <div className="api-badge">
+                            <div className="pulse-dot"></div>
+                            API Active
+                        </div>
+                        <button className="logout-btn" onClick={handleLogout} title="Logout">
+                            <LogOut size={18} />
+                            <span>Logout</span>
+                        </button>
                     </div>
                 </header>
 
-                <div className="wizard-container">
-                    {step === 1 && renderStep1()}
-                    {step === 2 && renderStep2()}
-                    {step === 3 && renderStep3()}
+                <div className="content-area">
+                    {activeModule === 'studio' ? (
+                        <>
+                            <div className="wizard-progress">
+                                <div className={`progress-step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'done' : ''}`}>1</div>
+                                <div className={`progress-line ${step > 1 ? 'active' : ''}`}></div>
+                                <div className={`progress-step ${step >= 2 ? 'active' : ''} ${step > 2 ? 'done' : ''}`}>2</div>
+                                <div className={`progress-line ${step > 2 ? 'active' : ''}`}></div>
+                                <div className={`progress-step ${step >= 3 ? 'active' : ''}`}>3</div>
+                            </div>
+                            {step === 1 && renderStep1()}
+                            {step === 2 && renderStep2()}
+                            {step === 3 && renderStep3()}
+                        </>
+                    ) : (
+                        <div className="empty-state">Select a module from the sidebar</div>
+                    )}
                 </div>
+                <footer className="app-footer">
+                    POWERED BY <span>RUNR</span>
+                </footer>
             </main>
         </div>
     );

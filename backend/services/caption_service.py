@@ -15,6 +15,12 @@ import subprocess
 import math
 
 TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp")
+FFMPEG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv/bin/static_ffmpeg")
+FFPROBE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".venv/bin/static_ffprobe")
+
+if not os.path.exists(FFMPEG_PATH):
+    FFMPEG_PATH = "ffmpeg"
+    FFPROBE_PATH = "ffprobe"
 
 
 def _split_into_segments(text: str, max_words_per_segment: int = 6) -> list[str]:
@@ -111,7 +117,7 @@ def get_video_duration(video_path: str) -> float:
     try:
         result = subprocess.run(
             [
-                "ffprobe", "-v", "quiet",
+                FFPROBE_PATH, "-v", "quiet",
                 "-show_entries", "format=duration",
                 "-of", "default=noprint_wrappers=1:nokey=1",
                 video_path
@@ -170,7 +176,7 @@ def burn_captions(
     try:
         # Use ffmpeg subtitles filter
         cmd = [
-            "ffmpeg", "-y",
+            FFMPEG_PATH, "-y",
             "-i", video_path,
             "-vf", f"subtitles={escaped_srt}:force_style='{subtitle_style}'",
             "-c:a", "copy",
@@ -214,7 +220,7 @@ def _burn_captions_drawtext(
         # Simple approach: single drawtext that changes
         # For the fallback, just overlay the text at the bottom
         cmd = [
-            "ffmpeg", "-y",
+            FFMPEG_PATH, "-y",
             "-i", video_path,
             "-vf", f"drawtext=textfile={srt_path}:fontsize={font_size}:fontcolor=white:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h-th-40",
             "-c:a", "copy",

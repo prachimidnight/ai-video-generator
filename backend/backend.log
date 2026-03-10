@@ -1,2 +1,297 @@
 nohup: ignoring input
-nohup: failed to run command '../venv/bin/python': No such file or directory
+INFO:     Started server process [52320]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60924 - "POST /signup HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:38494 - "POST /signup HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38506 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38516 - "PUT /admin/users/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38526 - "DELETE /admin/users/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37960 - "POST /signup HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37976 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37992 - "PUT /admin/users/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38002 - "DELETE /admin/users/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57468 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57496 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57484 - "GET /user/credits?email=admin@example.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57484 - "GET /user/credits?email=admin@example.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41246 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41260 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41262 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41260 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40670 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40672 - "GET /user/credits?email=admin@example.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40670 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40672 - "GET /user/credits?email=admin@example.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46662 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46666 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46662 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46666 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34400 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34430 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34414 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34414 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50218 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50222 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50232 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50248 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50256 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50220 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50218 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50222 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50256 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50248 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50232 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50220 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42456 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42472 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42482 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42488 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42492 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42456 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42470 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42472 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42470 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42488 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42482 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:42492 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38658 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38668 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38658 - "GET /user/credits?email=admin@example.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38670 - "GET /user/credits?email=admin@example.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53544 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53558 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53546 - "GET /user/credits?email=admin@example.com HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/connections.py", line 813, in _write_bytes
+    self._sock.sendall(data)
+ConnectionResetError: [Errno 104] Connection reset by peer
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/cursors.py", line 153, in execute
+    result = self._query(query)
+             ^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/cursors.py", line 322, in _query
+    conn.query(q)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/connections.py", line 574, in query
+    self._execute_command(COMMAND.COM_QUERY, sql)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/connections.py", line 865, in _execute_command
+    self._write_bytes(packet)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/connections.py", line 816, in _write_bytes
+    raise err.OperationalError(
+pymysql.err.OperationalError: (2006, "MySQL server has gone away (ConnectionResetError(104, 'Connection reset by peer'))")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py", line 410, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/fastapi/applications.py", line 1160, in __call__
+    await super().__call__(scope, receive, send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+  File "/usr/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/main.py", line 44, in add_ngrok_skip_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 95, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 153, in simple_response
+    await self.app(scope, receive, send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 130, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 116, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 670, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 326, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/main.py", line 107, in get_user_credits
+    return credit_service.get_credits(db, email)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/services/credit_service.py", line 35, in get_credits
+    user = db.query(User).filter(User.email == user_email).first()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/cursors.py", line 153, in execute
+    result = self._query(query)
+             ^^^^^^^^^^^^^^^^^^
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/cursors.py", line 322, in _query
+    conn.query(q)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/connections.py", line 574, in query
+    self._execute_command(COMMAND.COM_QUERY, sql)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/connections.py", line 865, in _execute_command
+    self._write_bytes(packet)
+  File "/opt/lampp/htdocs/Python projects/ai-video-generator/backend/.venv/lib/python3.12/site-packages/pymysql/connections.py", line 816, in _write_bytes
+    raise err.OperationalError(
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (2006, "MySQL server has gone away (ConnectionResetError(104, 'Connection reset by peer'))")
+[SQL: SELECT users.id AS users_id, users.guid AS users_guid, users.full_name AS users_full_name, users.email AS users_email, users.password_hash AS users_password_hash, users.phone_no AS users_phone_no, users.auth_provider AS users_auth_provider, users.role AS users_role, users.subscription_tier AS users_subscription_tier, users.available_credits AS users_available_credits, users.status AS users_status, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at 
+FROM users 
+WHERE users.email = %(email_1)s 
+ LIMIT %(param_1)s]
+[parameters: {'email_1': 'admin@example.com', 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:     127.0.0.1:53558 - "GET /user/credits?email=admin@example.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51968 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51986 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51992 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52002 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52006 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51970 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51970 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52002 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51986 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51992 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51968 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52006 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41736 - "OPTIONS /admin/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41748 - "DELETE /admin/users/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41736 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41748 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35502 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35520 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:35532 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:35546 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:35556 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:35518 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60040 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60070 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60080 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60096 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60100 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60040 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60056 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60070 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60100 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60096 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60080 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60040 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55624 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55644 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55652 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55660 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55670 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55632 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55624 - "GET /admin/analytics/weekly HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55660 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55652 - "GET /admin/stats HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55644 - "GET /admin/analytics/models HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55670 - "GET /admin/transactions HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55632 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49874 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49890 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49874 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49894 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57268 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57268 - "GET /usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57274 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57274 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57276 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58902 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58902 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59554 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59554 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:48716 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:48716 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54460 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54460 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+Drafting script for topic: थैंक यू नोट टूल का उपयोग तब किया जाता है, जब कोई LVB मेंबर आपको सीधे बिजनेस देता है या उनके माध्यम से किसी व्यक्ति से आपको बिजनेस मिलता है। (Hindi, 15s)
+DEBUG: Generating script using gemini-flash-latest...
+INFO:     127.0.0.1:40654 - "POST /draft-script HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49636 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49636 - "GET /user/credits?email=admin@example.com HTTP/1.1" 404 Not Found
