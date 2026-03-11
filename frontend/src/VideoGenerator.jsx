@@ -36,7 +36,8 @@ import {
     DollarSign,
     Activity,
     LogOut,
-    Cpu
+    Cpu,
+    Mic
 } from 'lucide-react';
 import './VideoGenerator.css';
 import LoadingScreen from './LoadingScreen';

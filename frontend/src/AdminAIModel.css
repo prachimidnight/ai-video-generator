@@ -32,13 +32,13 @@
 /* Active Model Card (Keep Highlighted) */
 .active-model-card {
     background: white;
-    border: 1px solid var(--admin-primary);
+    border: 1px solid #10b981;
     color: var(--admin-text);
-    box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
 }
 
 .active-model-card .card-title {
-    color: var(--admin-primary);
+    color: #10b981;
 }
 
 .active-badge {
@@ -75,13 +75,13 @@
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    background: #faf5ff;
-    border: 1px solid #e9d5ff;
+    background: #ecfdf5;
+    border: 1px solid #d1fae5;
     padding: 4px 10px;
     border-radius: 6px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--admin-primary);
+    color: #10b981;
 }
 
 /* Live Pricing Card (Light) */
@@ -264,9 +264,9 @@
 }
 
 .model-list-item.active {
-    border-color: var(--admin-primary);
+    border-color: #10b981;
     background: white;
-    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.05);
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.05);
 }
 
 .model-item-info h4 {
@@ -313,13 +313,13 @@
 }
 
 .radio-circle.active {
-    border-color: var(--admin-primary);
+    border-color: #10b981;
 }
 
 .radio-inner {
     width: 10px;
     height: 10px;
-    background: var(--admin-primary);
+    background: #10b981;
     border-radius: 50%;
 }
 

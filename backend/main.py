@@ -114,10 +114,16 @@ async def draft_script(
     script_model: str = Form("gemini-2.5-flash") # The AI model for the script
 ):
     """Step 1: Just generate the script draft."""
-    print(f"Drafting script for topic: {topic} ({language}, {duration}s) using {script_model}")
-    script, in_tokens, out_tokens = generate_script(topic, language, duration, model_name=script_model)
-    
-    return {"script": script, "input_tokens": in_tokens, "output_tokens": out_tokens}
+    try:
+        print(f"Drafting script for topic: {topic} ({language}, {duration}s) using {script_model}")
+        script, in_tokens, out_tokens = generate_script(topic, language, duration, model_name=script_model)
+        
+        return {"script": script, "input_tokens": in_tokens, "output_tokens": out_tokens}
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        print(f"ERROR in draft-script: {error_msg}")
+        return JSONResponse(status_code=500, content={"error": str(e), "traceback": error_msg})
 
 @app.post("/generate")
 async def generate_video(

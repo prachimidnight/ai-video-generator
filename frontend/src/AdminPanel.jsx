@@ -36,8 +36,50 @@ import {
 } from 'lucide-react';
 import './AdminPanel.css';
 import './AdminAIModel.css';
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+const AI_MODELS = [
+    {
+        id: "gemini-1.5-pro",
+        name: "Gemini 1.5 Pro",
+        provider: "Google",
+        inputPrice: "$1.25",
+        outputPrice: "$5.00",
+        estCostText: "$0.005-0.015",
+        monthlyEst: "$0.10 / $100",
+        tags: [{ icon: Zap, text: "High Reasoning" }, { icon: Database, text: "Complex Tasks" }]
+    },
+    {
+        id: "gemini-2.5-flash",
+        name: "Gemini 3 Flash Preview",
+        provider: "Google",
+        inputPrice: "$0.075",
+        outputPrice: "$0.30",
+        estCostText: "$0.002-0.008",
+        monthlyEst: "$0.01 / $100",
+        tags: [{ icon: Zap, text: "Fast Inference" }, { icon: Globe, text: "Function Calling" }]
+    },
+    {
+        id: "veo-3.1-fast-generate-preview",
+        name: "Veo Fast Generate",
+        provider: "Google",
+        inputPrice: "N/A",
+        outputPrice: "N/A",
+        estCostText: "Free (Preview)",
+        monthlyEst: "$0.00 / $100",
+        tags: [{ icon: Video, text: "Draft Videos" }, { icon: Zap, text: "Fast Generation" }]
+    },
+    {
+        id: "veo-3.1-generate-preview",
+        name: "Veo High Quality",
+        provider: "Google",
+        inputPrice: "N/A",
+        outputPrice: "N/A",
+        estCostText: "Premium Cost",
+        monthlyEst: "$1.50 / $100",
+        tags: [{ icon: Video, text: "1080p/4K" }, { icon: CheckCircle2, text: "Cinematic" }]
+    }
+];
 
 const AdminPanel = ({ navigate }) => {
     const [view, setView] = useState('dashboard');
@@ -71,6 +113,19 @@ const AdminPanel = ({ navigate }) => {
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [userIdToDelete, setUserIdToDelete] = useState(null);
+
+    // AI Models State
+    const [activeModel, setActiveModel] = useState(AI_MODELS[1]); // Default to Gemini 3 Flash
+    const [confirmModel, setConfirmModel] = useState(null);
+    const [showModelModal, setShowModelModal] = useState(false);
+
+    // Toast State
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    };
 
     useEffect(() => {
         const loadAllData = async () => {
@@ -238,7 +293,7 @@ const AdminPanel = ({ navigate }) => {
             fetchUsers();
         } catch (error) {
             console.error(`Error ${modalMode === 'add' ? 'creating' : 'updating'} user:`, error);
-            alert(`Error ${modalMode === 'add' ? 'creating' : 'updating'} user. Please try again.`);
+            showToast(`Error ${modalMode === 'add' ? 'creating' : 'updating'} user. Please try again.`, 'error');
         }
     };
 
@@ -264,7 +319,7 @@ const AdminPanel = ({ navigate }) => {
             }
         } catch (error) {
             console.error("Delete error:", error);
-            alert("Failed to delete user. Please try again.");
+            showToast("Failed to delete user. Please try again.", 'error');
             setShowDeleteModal(false);
         }
     };
@@ -755,11 +810,17 @@ const AdminPanel = ({ navigate }) => {
                         <div className="card-title"><Cpu size={16} /> Current Active Model</div>
                         <div className="active-badge">ACTIVE</div>
                     </div>
-                    <div className="model-primary-name">Gemini 3 Flash Preview</div>
-                    <div className="model-provider">Google</div>
+                    <div className="model-primary-name">{activeModel.name}</div>
+                    <div className="model-provider">{activeModel.provider}</div>
                     <div className="model-tags">
-                        <span className="model-tag"><Zap size={12} /> Fast Inference</span>
-                        <span className="model-tag"><Globe size={12} /> Function Calling</span>
+                        {activeModel.tags.map((tag, i) => {
+                            const TagIcon = tag.icon;
+                            return (
+                                <span key={i} className="model-tag">
+                                    <TagIcon size={12} /> {tag.text}
+                                </span>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -768,17 +829,17 @@ const AdminPanel = ({ navigate }) => {
                     <div className="pricing-split">
                         <div className="price-item">
                             <div className="price-label">Input</div>
-                            <div className="price-value">$0.5</div>
-                            <div className="price-sub">/ 1M tokens</div>
+                            <div className="price-value">{activeModel.inputPrice}</div>
+                            {activeModel.inputPrice !== 'N/A' && <div className="price-sub">/ 1M tokens</div>}
                         </div>
                         <div className="price-item align-right">
                             <div className="price-label">Output</div>
-                            <div className="price-value">$3</div>
-                            <div className="price-sub">/ 1M tokens</div>
+                            <div className="price-value">{activeModel.outputPrice}</div>
+                            {activeModel.outputPrice !== 'N/A' && <div className="price-sub">/ 1M tokens</div>}
                         </div>
                     </div>
                     <div className="pricing-note">
-                        <AlertCircle size={14} /> Est. cost per query: <span className="highlight-purple">$0.002-0.008</span>
+                        <AlertCircle size={14} /> Est. cost per query: <span className="highlight-green">{activeModel.estCostText}</span>
                     </div>
                 </div>
 
@@ -788,7 +849,7 @@ const AdminPanel = ({ navigate }) => {
                         <button className="icon-btn-small"><Edit size={14} /></button>
                     </div>
                     <div className="budget-stats">
-                        <div className="budget-amounts">$0.01 / $100</div>
+                        <div className="budget-amounts">{activeModel.monthlyEst}</div>
                         <div className="budget-inr">₹1 / ₹8225</div>
                         <div className="budget-pct">0.0% used</div>
                     </div>
@@ -881,37 +942,28 @@ const AdminPanel = ({ navigate }) => {
                     </div>
 
                     <div className="model-list">
-                        <div className="model-list-item">
-                            <div className="model-item-info">
-                                <h4>Gemini 1.5 Pro</h4>
-                                <div className="model-item-cost">Input: $1.25 | Output: $5</div>
+                        {AI_MODELS.map((model) => (
+                            <div
+                                key={model.id}
+                                className={`model-list-item ${activeModel.id === model.id ? 'active' : ''}`}
+                                onClick={() => {
+                                    if (activeModel.id !== model.id) {
+                                        setConfirmModel(model);
+                                        setShowModelModal(true);
+                                    }
+                                }}
+                            >
+                                <div className="model-item-info">
+                                    <h4>{model.name} {activeModel.id === model.id ? null : <span className="code-id">{model.id}</span>}</h4>
+                                    <div className="model-item-cost">
+                                        {model.id.includes('veo') ? (model.id.includes('fast') ? 'Video Generation (Fast)' : 'Video Generation (Standard)') : `Input: ${model.inputPrice} | Output: ${model.outputPrice}`}
+                                    </div>
+                                </div>
+                                <div className={`radio-circle ${activeModel.id === model.id ? 'active' : ''}`}>
+                                    {activeModel.id === model.id && <div className="radio-inner"></div>}
+                                </div>
                             </div>
-                            <div className="radio-circle"></div>
-                        </div>
-
-                        <div className="model-list-item active">
-                            <div className="model-item-info">
-                                <h4>Gemini 3 Flash Preview <span className="code-id">gemini-2.5-flash</span></h4>
-                                <div className="model-item-cost">Input: $0.075 | Output: $0.30</div>
-                            </div>
-                            <div className="radio-circle active"><div className="radio-inner"></div></div>
-                        </div>
-
-                        <div className="model-list-item">
-                            <div className="model-item-info">
-                                <h4>Veo Fast Generate <span className="code-id">veo-3.1-fast-generate-preview</span></h4>
-                                <div className="model-item-cost">Video Generation (Fast)</div>
-                            </div>
-                            <div className="radio-circle"></div>
-                        </div>
-
-                        <div className="model-list-item">
-                            <div className="model-item-info">
-                                <h4>Veo High Quality <span className="code-id">veo-3.1-generate-preview</span></h4>
-                                <div className="model-item-cost">Video Generation (Standard)</div>
-                            </div>
-                            <div className="radio-circle"></div>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </div>
@@ -1080,6 +1132,43 @@ const AdminPanel = ({ navigate }) => {
                             <button className="text-btn" onClick={() => setShowUserModal(false)}>Cancel</button>
                             <button className="primary-btn" onClick={handleSaveUser}>
                                 {modalMode === 'add' ? 'Create User' : 'Update User'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Toast Notification */}
+            {toast.show && (
+                <div className={`admin-toast ${toast.type}`}>
+                    {toast.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                    <span>{toast.message}</span>
+                </div>
+            )}
+
+            {/* Switch AI Model Confirmation Modal */}
+            {showModelModal && confirmModel && (
+                <div className="modal-overlay">
+                    <div className="admin-modal confirm-modal animate-scale">
+                        <div className="modal-header">
+                            <h3>Confirm Model Switch</h3>
+                            <button className="close-btn" onClick={() => setShowModelModal(false)}><X size={18} /></button>
+                        </div>
+                        <div className="modal-body confirm-body">
+                            <Cpu size={48} className="confirm-icon" style={{ color: '#10b981', margin: '0 auto 1rem', display: 'block' }} />
+                            <h4 style={{ textAlign: 'center', marginBottom: '1rem' }}>Can you switch the model?</h4>
+                            <p style={{ textAlign: 'center', color: 'var(--admin-text-dim)' }}>
+                                You are about to switch the global AI generation model to <strong style={{ color: 'var(--admin-text)' }}>{confirmModel.name}</strong>. Traffic routing and cost estimations will be updated immediately.
+                            </p>
+                        </div>
+                        <div className="modal-footer" style={{ justifyContent: 'center', gap: '1rem' }}>
+                            <button className="text-btn" onClick={() => setShowModelModal(false)}>Cancel</button>
+                            <button className="primary-btn" style={{ background: '#10b981' }} onClick={() => {
+                                setActiveModel(confirmModel);
+                                setShowModelModal(false);
+                                showToast(`Successfully switched to ${confirmModel.name}`, 'success');
+                            }}>
+                                Yes, Switch Model
                             </button>
                         </div>
                     </div>

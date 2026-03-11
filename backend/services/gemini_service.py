@@ -209,8 +209,8 @@ class GeminiService:
 # Legacy compatibility functions for main.py
 _service = GeminiService()
 
-def generate_script(topic, language="English", duration=15):
-    return _service.generate_script(topic, language, duration)
+def generate_script(topic, language="English", duration=15, model_name="gemini-2.5-flash"):
+    return _service.generate_script(topic, language, duration, model_name)
 
 def detect_gender(path):
     return _service.detect_gender(path)
