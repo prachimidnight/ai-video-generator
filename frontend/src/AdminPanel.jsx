@@ -1148,7 +1148,7 @@ const AdminPanel = ({ navigate }) => {
 
             {/* Switch AI Model Confirmation Modal */}
             {showModelModal && confirmModel && (
-                <div className="modal-overlay">
+                <div className="admin-modal-overlay">
                     <div className="admin-modal confirm-modal animate-scale">
                         <div className="modal-header">
                             <h3>Confirm Model Switch</h3>
