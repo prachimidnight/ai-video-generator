@@ -39,10 +39,10 @@ import {
     Cpu,
     Mic
 } from 'lucide-react';
+import { API_BASE_URL } from './config';
 import './VideoGenerator.css';
 import LoadingScreen from './LoadingScreen';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 
 const VOICES = {

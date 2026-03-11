@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, ArrowRight, Wand2, Github } from 'lucide-react';
+import { API_BASE_URL } from './config';
 import './LoginPage.css'; // Reusing login styles for consistency
 
 const SignupPage = ({ navigate }) => {
@@ -16,7 +17,7 @@ const SignupPage = ({ navigate }) => {
         setError('');
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const apiUrl = API_BASE_URL;
             const response = await fetch(`${apiUrl}/signup`, {
                 method: 'POST',
                 headers: {

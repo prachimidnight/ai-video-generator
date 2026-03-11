@@ -1,42 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Users,
-    Video,
-    BarChart3,
-    Settings,
-    Plus,
-    Search,
-    Bell,
-    Download,
-    ChevronRight,
-    Trash2,
-    Edit,
-    TrendingUp,
-    TrendingDown,
-    Activity,
-    Shield,
-    X,
-    LayoutDashboard,
-    CreditCard,
-    ArrowLeft,
-    DollarSign,
-    CheckCircle2,
-    Clock,
-    AlertCircle,
-    Globe,
-    Lock,
-    Cpu,
-    Database,
-    Zap,
-    LogOut,
-    Twitter,
-    Linkedin,
-    Github,
-    Instagram
+    LayoutDashboard, Users, BarChart3, Settings, LogOut,
+    ArrowLeft, Search, Plus, Trash2, Edit2, CheckCircle2,
+    AlertCircle, X, Zap, Globe, Cpu, Video, CreditCard,
+    TrendingUp, TrendingDown, Clock, Activity, Shield,
+    Download, ChevronRight, DollarSign, Lock, Database,
+    Twitter, Linkedin, Github, Instagram
 } from 'lucide-react';
+import { API_BASE_URL } from './config';
 import './AdminPanel.css';
 import './AdminAIModel.css';
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const AI_MODELS = [
     {

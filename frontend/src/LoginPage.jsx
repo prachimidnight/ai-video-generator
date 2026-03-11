@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, Wand2, Github } from 'lucide-react';
+import { API_BASE_URL } from './config';
 import './LoginPage.css';
 
 const LoginPage = ({ navigate }) => {
@@ -15,7 +16,7 @@ const LoginPage = ({ navigate }) => {
         setError('');
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const apiUrl = API_BASE_URL;
             const formData = new FormData();
             formData.append('email', email);
             formData.append('password', password);
