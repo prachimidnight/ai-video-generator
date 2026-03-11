@@ -16,16 +16,13 @@ from services.format_service import convert_single_format, convert_to_all_format
 from services.translation_service import translation_service
 from services.usage_service import usage_service
 import time
-from sqlalchemy.orm import Session
+from pymongo.database import Database
 from fastapi import Depends
 import models
 import schemas
 import auth
-from database import engine, get_db
+from database import get_db
 from services.credit_service import credit_service
-
-# Create tables
-models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="AI Video Generator API")
 
@@ -57,9 +54,9 @@ async def root():
     return {"message": "Welcome to the AI Video Generator API"}
 
 @app.post("/signup", response_model=schemas.UserResponse)
-def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def signup(user: schemas.UserCreate, db: Database = Depends(get_db)):
     # Check if user exists
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    db_user = db.users.find_one({"email": user.email})
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
@@ -72,27 +69,26 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
         email=user.email,
         password_hash=hashed_password
     )
+    user_dict = new_user.model_dump()
+    db.users.insert_one(user_dict)
     
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    return user_dict
 
 @app.post("/login")
-def login(email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == email, models.User.status == True).first()
-    if not user or not auth.verify_password(password, user.password_hash):
+def login(email: str = Form(...), password: str = Form(...), db: Database = Depends(get_db)):
+    user = db.users.find_one({"email": email, "status": True})
+    if not user or not auth.verify_password(password, user.get("password_hash")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     return {
         "status": "success",
         "message": "Login successful",
         "user": {
-            "guid": user.guid,
-            "full_name": user.full_name,
-            "email": user.email,
-            "subscription_tier": user.subscription_tier,
-            "available_credits": user.available_credits
+            "guid": user.get("guid"),
+            "full_name": user.get("full_name"),
+            "email": user.get("email"),
+            "subscription_tier": user.get("subscription_tier", "basic"),
+            "available_credits": user.get("available_credits", 2)
         }
     }
 
@@ -101,7 +97,7 @@ def logout():
     return {"status": "success", "message": "Logged out successfully"}
 
 @app.get("/user/credits")
-def get_user_credits(email: str, db: Session = Depends(get_db)):
+def get_user_credits(email: str, db: Database = Depends(get_db)):
     """GET current credit balance for a user."""
     return credit_service.get_credits(db, email)
 
@@ -149,7 +145,7 @@ async def generate_video(
     # New parameters for auto-dubbing
     dub_languages: str = Form(""),  # Comma-separated list of languages
     user_email: str = Form(...),    # User who pays for this
-    db: Session = Depends(get_db)
+    db: Database = Depends(get_db)
 ):
     """
     Step 2: Pro pipeline with full customization.
@@ -593,19 +589,19 @@ async def reset_usage():
 
 
 @app.get("/admin/users")
-async def get_admin_users(db: Session = Depends(get_db)):
+async def get_admin_users(db: Database = Depends(get_db)):
     """Get list of users for admin panel from real database."""
-    users = db.query(models.User).filter(models.User.status == True).all()
+    users = list(db.users.find({"status": True}))
     user_list = []
     for u in users:
         user_list.append({
-            "id": u.id,
-            "name": u.full_name,
-            "email": u.email,
-            "tier": u.subscription_tier.capitalize(),
-            "status": "Active" if u.status else "Inactive",
-            "usage": u.available_credits, # Showing credits as usage/balance
-            "joined": u.created_at.strftime("%d %b %Y")
+            "id": u.get("id") or u.get("guid"),
+            "name": u.get("full_name"),
+            "email": u.get("email"),
+            "tier": u.get("subscription_tier", "basic").capitalize(),
+            "status": "Active" if u.get("status") else "Inactive",
+            "usage": u.get("available_credits"), # Showing credits as usage/balance
+            "joined": u.get("created_at").strftime("%d %b %Y") if hasattr(u.get("created_at"), "strftime") else str(u.get("created_at"))
         })
     return {
         "status": "success",
@@ -614,46 +610,47 @@ async def get_admin_users(db: Session = Depends(get_db)):
 
 
 @app.put("/admin/users/{user_id}")
-async def update_admin_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Depends(get_db)):
+async def update_admin_user(user_id: str, user_update: schemas.UserUpdate, db: Database = Depends(get_db)):
     """Update user details as an admin."""
-    db_user = db.query(models.User).filter(models.User.id == user_id, models.User.status == True).first()
+    # Assuming user_id passed from frontend is the guid or id string
+    db_user = db.users.find_one({"$or": [{"guid": user_id}, {"id": user_id}], "status": True})
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
     update_data = user_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_user, key, value)
+    db.users.update_one({"_id": db_user["_id"]}, {"$set": update_data})
     
-    db.commit()
-    db.refresh(db_user)
+    # Return updated
+    db_user.update(update_data)
+    # Fix ObjectId serialization issue
+    db_user["_id"] = str(db_user["_id"])
     return {"status": "success", "message": "User updated successfully", "data": db_user}
 
 
 @app.delete("/admin/users/{user_id}")
-async def delete_admin_user(user_id: int, db: Session = Depends(get_db)):
-    """Soft delete a user as an admin (set status to 0)."""
-    db_user = db.query(models.User).filter(models.User.id == user_id, models.User.status == True).first()
+async def delete_admin_user(user_id: str, db: Database = Depends(get_db)):
+    """Soft delete a user as an admin (set status to False)."""
+    db_user = db.users.find_one({"$or": [{"guid": user_id}, {"id": user_id}], "status": True})
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    db_user.status = False
-    db.commit()
+    db.users.update_one({"_id": db_user["_id"]}, {"$set": {"status": False}})
     return {"status": "success", "message": "User deleted successfully"}
 
 
 @app.get("/admin/stats")
-async def get_admin_stats(db: Session = Depends(get_db)):
+async def get_admin_stats(db: Database = Depends(get_db)):
     """Get high-level system metrics."""
-    total_users = db.query(models.User).filter(models.User.status == True).count()
+    total_users = db.users.count_documents({"status": True})
     usage = usage_service.get_summary()
     
     # Calculate revenue from transactions
-    transactions = db.query(models.Transaction).filter(models.Transaction.status == "Completed").all()
+    transactions = list(db.transactions.find({"status": "Completed"}))
     total_revenue_inr = 0
     for tx in transactions:
         try:
             # Extract number from string like "₹1,499"
-            amt_str = tx.amount.replace("₹", "").replace(",", "")
+            amt_str = tx.get("amount", "0").replace("₹", "").replace(",", "")
             total_revenue_inr += int(amt_str)
         except:
             continue
@@ -767,33 +764,34 @@ async def get_model_distribution():
 
 
 @app.get("/admin/transactions")
-async def get_admin_transactions(db: Session = Depends(get_db)):
+async def get_admin_transactions(db: Database = Depends(get_db)):
     """Fetch transaction history."""
-    txs = db.query(models.Transaction).order_by(models.Transaction.created_at.desc()).all()
+    txs = list(db.transactions.find().sort("created_at", -1))
     
     # Seed if empty for demo
     if not txs:
         dummy_txs = [
-            models.Transaction(txn_id="TXN-9021", user_name="Abhishek Sharma", amount="₹14,999", plan="Agency Yearly", status="Completed", method="Razorpay"),
-            models.Transaction(txn_id="TXN-9020", user_name="Priya Patel", amount="₹1,499", plan="Pro Monthly", status="Completed", method="UPI"),
-            models.Transaction(txn_id="TXN-9019", user_name="Rahul Varma", amount="₹499", plan="Basic Top-up", status="Failed", method="Card"),
-            models.Transaction(txn_id="TXN-9018", user_name="Sanjana Reddy", amount="₹1,499", plan="Pro Monthly", status="Processing", method="NetBanking"),
-            models.Transaction(txn_id="TXN-9017", user_name="Vikram Singh", amount="₹14,999", plan="Agency Yearly", status="Completed", method="Razorpay"),
+            models.Transaction(txn_id="TXN-9021", user_name="Abhishek Sharma", amount="₹14,999", plan="Agency Yearly", status="Completed", method="Razorpay").model_dump(),
+            models.Transaction(txn_id="TXN-9020", user_name="Priya Patel", amount="₹1,499", plan="Pro Monthly", status="Completed", method="UPI").model_dump(),
+            models.Transaction(txn_id="TXN-9019", user_name="Rahul Varma", amount="₹499", plan="Basic Top-up", status="Failed", method="Card").model_dump(),
+            models.Transaction(txn_id="TXN-9018", user_name="Sanjana Reddy", amount="₹1,499", plan="Pro Monthly", status="Processing", method="NetBanking").model_dump(),
+            models.Transaction(txn_id="TXN-9017", user_name="Vikram Singh", amount="₹14,999", plan="Agency Yearly", status="Completed", method="Razorpay").model_dump(),
         ]
-        db.add_all(dummy_txs)
-        db.commit()
-        txs = db.query(models.Transaction).order_by(models.Transaction.created_at.desc()).all()
+        db.transactions.insert_many(dummy_txs)
+        txs = list(db.transactions.find().sort("created_at", -1))
 
     result = []
     for tx in txs:
+        created_at = tx.get("created_at")
+        date_str = created_at.strftime("%d %b %Y") if hasattr(created_at, "strftime") else str(created_at)
         result.append({
-            "id": tx.txn_id,
-            "user": tx.user_name,
-            "amount": tx.amount,
-            "plan": tx.plan,
-            "date": tx.created_at.strftime("%d %b %Y"),
-            "status": tx.status,
-            "method": tx.method
+            "id": tx.get("txn_id"),
+            "user": tx.get("user_name"),
+            "amount": tx.get("amount"),
+            "plan": tx.get("plan"),
+            "date": date_str,
+            "status": tx.get("status"),
+            "method": tx.get("method")
         })
         
     return {
