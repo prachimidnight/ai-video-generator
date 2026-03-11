@@ -61,7 +61,39 @@ class UsageService:
             "total_dub_translations": 0,
             "total_caption_burns": 0,
             "total_format_conversions": 0,
-            "generations": []
+
+            "generations": [
+                {
+                    "id": "gen-123",
+                    "user": "aadil.sayyad@company.com",
+                    "date": "06 Mar 2026",
+                    "cost": {"total_usd": 0.0015, "total_inr": 0.12}
+                },
+                {
+                    "id": "gen-124",
+                    "user": "aadil.sayyad@company.com",
+                    "date": "06 Mar 2026",
+                    "cost": {"total_usd": 0.0015, "total_inr": 0.12}
+                },
+                {
+                    "id": "gen-125",
+                    "user": "aadil.sayyad@company.com",
+                    "date": "07 Mar 2026",
+                    "cost": {"total_usd": 0.0015, "total_inr": 0.13}
+                },
+                {
+                    "id": "gen-126",
+                    "user": "rahul.sharma@startup.in",
+                    "date": "06 Mar 2026",
+                    "cost": {"total_usd": 0.0015, "total_inr": 0.12}
+                },
+                {
+                    "id": "gen-127",
+                    "user": "rahul.sharma@startup.in",
+                    "date": "07 Mar 2026",
+                    "cost": {"total_usd": 0.0015, "total_inr": 0.13}
+                }
+            ]
         }
 
     def _save_data(self):
