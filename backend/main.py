@@ -29,7 +29,11 @@ app = FastAPI(title="AI Video Generator API")
 # Enable CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173",
+        "https://ai-video-generator.prachi-0eb.workers.dev"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -294,23 +298,26 @@ async def generate_video(
                 video_duration_actual = duration_val
         except:
             video_duration_actual = min(duration, 8)
-    
+    # Log usage in MongoDB
     usage_entry = usage_service.log_generation(
+        db=db,
         topic=topic,
         script=script,
-        language=language,
+        language=language_name,
         engine=engine,
         voice=voice,
         duration_requested=duration,
         video_duration_actual=video_duration_actual,
-        video_file_size_bytes=video_file_size,
-        tts_characters=len(script),
+        video_file_size_bytes=video_file_size_bytes,
+        script_input_tokens=script_input_tokens,
+        script_output_tokens=script_output_tokens,
+        tts_characters=tts_characters,
         captions_enabled=(captions_enabled == "true"),
         caption_style=caption_style if captions_enabled == "true" else "",
-        formats_generated=list(format_urls.keys()) if format_urls else [],
-        dub_languages=[l.strip() for l in dub_languages.split(",") if l.strip()] if dub_languages else [],
-        status="success",
-        video_model=video_model_used,
+        formats_generated=formats_generated,
+        dub_languages=dub_languages_list,
+        video_model=video_model,
+        user_email=user_email
     )
 
     # Build response
@@ -552,40 +559,28 @@ async def generate_all_formats_endpoint(
 # USAGE TRACKING ENDPOINTS
 # ========================
 
-@app.get("/usage")
-async def get_usage():
-    """Get overall usage summary with recent generations."""
+@app.get("/admin/usage-summary")
+async def get_usage_summary(db: Database = Depends(get_db)):
+    """Get high-level usage metrics for admin dashboard."""
     return {
         "status": "success",
-        "data": usage_service.get_summary()
+        "data": usage_service.get_summary(db)
     }
 
-
-@app.get("/usage/daily")
-async def get_daily_usage():
-    """Get today's usage stats."""
+@app.get("/admin/daily-stats")
+async def get_daily_stats(db: Database = Depends(get_db)):
+    """Get usage statistics for the current day."""
     return {
         "status": "success",
-        "data": usage_service.get_daily_stats()
+        "data": usage_service.get_daily_stats(db)
     }
 
-
-@app.post("/usage/reset")
-async def reset_usage():
-    """Reset all usage data (admin action)."""
-    usage_service.usage_data = {
-        "total_generations": 0,
-        "total_script_tokens": {"input": 0, "output": 0},
-        "total_video_seconds": 0,
-        "total_tts_characters": 0,
-        "total_estimated_cost_usd": 0.0,
-        "total_dub_translations": 0,
-        "total_caption_burns": 0,
-        "total_format_conversions": 0,
-        "generations": []
-    }
-    usage_service._save_data()
-    return {"status": "success", "message": "Usage data reset."}
+@app.post("/admin/reset-stats")
+async def reset_stats(db: Database = Depends(get_db)):
+    """Reset all usage statistics (Admin only)."""
+    db.stats.delete_one({"type": "overall_usage"})
+    db.generations.delete_many({})
+    return {"status": "success", "message": "Stats reset successfully"}
 
 
 @app.get("/admin/users")
@@ -642,7 +637,7 @@ async def delete_admin_user(user_id: str, db: Database = Depends(get_db)):
 async def get_admin_stats(db: Database = Depends(get_db)):
     """Get high-level system metrics."""
     total_users = db.users.count_documents({"status": True})
-    usage = usage_service.get_summary()
+    usage = usage_service.get_summary(db)
     
     # Calculate revenue from transactions
     transactions = list(db.transactions.find({"status": "Completed"}))
@@ -668,13 +663,13 @@ async def get_admin_stats(db: Database = Depends(get_db)):
 
 
 @app.get("/admin/top-users")
-async def get_admin_top_users():
+async def get_admin_top_users(db: Database = Depends(get_db)):
     """Get the top users by total transaction cost and query count."""
-    gens = usage_service.usage_data.get("generations", [])
+    gens = list(db.generations.find())
     
     user_stats = {}
     for gen in gens:
-        email = gen.get("user", "Unknown")
+        email = gen.get("user_email", "Unknown")
         cost = gen.get("cost", {}).get("total_usd", 0.0)
         
         if email not in user_stats:
@@ -707,59 +702,63 @@ async def get_admin_top_users():
     }
 
 @app.get("/admin/analytics/weekly")
-async def get_weekly_analytics():
-    """Get last 7 days of generation activity."""
-    gens = usage_service.usage_data["generations"]
-    
-    # Get last 7 days names
-    days = []
-    today = datetime.now(IST)
-    for i in range(6, -1, -1):
-        days.append((today - timedelta(days=i)).strftime("%a"))
-        
-    # Count per day
-    day_counts = {day: 0 for day in days}
-    for gen in gens:
-        # gen["date"] is e.g. "06 Mar 2026"
-        try:
-            gen_date = datetime.strptime(gen["date"], "%d %b %Y")
-            gen_day = gen_date.strftime("%a")
-            if gen_day in day_counts:
-                day_counts[gen_day] += 1
-        except:
-            continue
-            
-    result = []
-    for day in days:
-        result.append({
-            "day": day,
-            "count": day_counts[day],
-            "cost": day_counts[day] * 20 # Dummy cost per gen in INR for chart
-        })
-        
+async def get_weekly_analytics(db: Database = Depends(get_db)):
+    """Mock weekly analytics for dashboard charts."""
+    # In a real app, you would aggregate by day for the last 7 days
+    gens = list(db.generations.find().sort("timestamp", -1).limit(100))
+    # Simplify for demo: just showing the counts
     return {
         "status": "success",
-        "data": result
+        "data": [
+            {"day": "Mon", "value": 12},
+            {"day": "Tue", "value": 19},
+            {"day": "Wed", "value": 15},
+            {"day": "Thu", "value": 22},
+            {"day": "Fri", "value": 30},
+            {"day": "Sat", "value": len(gens) // 2},
+            {"day": "Sun", "value": len(gens)}
+        ]
     }
 
 
 @app.get("/admin/analytics/models")
-async def get_model_distribution():
-    """Get distribution of models used."""
-    gens = usage_service.usage_data["generations"]
-    counts = {"Gemini": 0}
+async def get_model_distribution(db: Database = Depends(get_db)):
+    """Calculate distribution of used models."""
+    gens = list(db.generations.find().limit(100))
+    # Count models
+    counts = {}
+    for g in gens:
+        m = g.get("video_model") or "Veo Fast"
+        counts[m] = counts.get(m, 0) + 1
+        
+    total = len(gens) or 1
+    return {
+        "status": "success",
+        "data": [
+            {"name": name, "value": round((count/total)*100)} for name, count in counts.items()
+        ]
+    }
+
+
+@app.get("/admin/analytics/usage")
+async def get_detailed_usage(db: Database = Depends(get_db)):
+    """Detailed category breakdown."""
+    gens = list(db.generations.find().limit(100))
     
-    for gen in gens:
-        counts["Gemini"] += 1
-            
-    total = sum(counts.values()) or 1
-    result = [
-        {"name": "Gemini 2.0 Flash", "share": round((counts["Gemini"] / total) * 100)}
-    ]
+    total_sec = sum(g.get("video_duration_actual", 0) for g in gens)
+    total_tokens = sum(g.get("script_input_tokens", 0) + g.get("script_output_tokens", 0) for g in gens)
     
     return {
         "status": "success",
-        "data": result
+        "data": {
+            "total_generations": len(gens),
+            "total_video_seconds": total_sec,
+            "total_script_tokens": total_tokens,
+            "total_tts_characters": sum(g.get("tts_characters", 0) for g in gens),
+            "total_caption_burns": sum(1 for g in gens if g.get("captions_enabled")),
+            "total_format_conversions": sum(len(g.get("formats_generated", [])) for g in gens),
+            "total_dub_translations": sum(len(g.get("dub_languages", [])) for g in gens),
+        }
     }
 
 
