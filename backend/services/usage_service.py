@@ -124,27 +124,82 @@ class UsageService:
         return entry
 
     def _calculate_costs(self, **kwargs) -> dict:
-        # Simplified logic based on provided pricing
-        # Inputting similar logic as before
+        """Calculate real costs based on token/time usage."""
+        video_model = kwargs.get("video_model", "veo-3.1-fast-generate-preview")
         video_duration = kwargs.get("video_duration", 0)
         script_input_tokens = kwargs.get("script_input_tokens", 0)
         script_output_tokens = kwargs.get("script_output_tokens", 0)
+        tts_characters = kwargs.get("tts_characters", 0)
         dub_count = kwargs.get("dub_count", 0)
         
-        # Assume Flash for now
-        script_cost = 0.0 # Free tiers
-        video_cost = 0.0
+        # 1. Script Generation Cost (Gemini)
+        # Default to flash if model unknown
+        model_rates = PRICING.get("gemini-1.5-pro", { "input_per_1k_tokens": 1.25, "output_per_1k_tokens": 5.00 })
+        script_cost = (script_input_tokens / 1000 * model_rates["input_per_1k_tokens"]) + \
+                      (script_output_tokens / 1000 * model_rates["output_per_1k_tokens"])
         
-        total = script_cost + video_cost
+        # 2. Video Generation Cost (Veo)
+        veo_rates = PRICING.get(video_model, PRICING["veo-3.1-fast-generate-preview"])
+        video_cost = video_duration * veo_rates.get("per_second", 0.35)
+        
+        # 3. TTS Cost (Approximate $15 per 1M characters -> $0.000015 per char)
+        tts_cost = tts_characters * 0.000015
+        
+        # 4. Dubbing Cost ($0.10 per language)
+        dub_cost = dub_count * 0.10
+        
+        total = script_cost + video_cost + tts_cost + dub_cost
         return {
-            "total_usd": round(total, 6),
-            "total_inr": round(total * 83, 2),
-            "total_paid_usd": round(video_duration * 0.35, 4), # Logic for visualization
+            "script_usd": round(script_cost, 6),
+            "video_usd": round(video_cost, 6),
+            "tts_usd": round(tts_cost, 6),
+            "dub_usd": round(dub_cost, 6),
+            "total_usd": round(total, 4),
+            "total_inr": round(total * 85.0, 2), # Updated exchange rate
+            "breakdown": {
+                "tokens": script_input_tokens + script_output_tokens,
+                "duration": round(video_duration, 1),
+                "chars": tts_characters,
+                "languages": dub_count
+            }
         }
+
+    def get_model_usage(self, db: Database) -> list:
+        """Get usage stats grouped by model for the admin panel."""
+        pipeline = [
+            {
+                "$group": {
+                    "_id": "$video_model",
+                    "count": {"$sum": 1},
+                    "total_cost": {"$sum": "$cost.total_usd"},
+                    "total_seconds": {"$sum": "$video_duration_actual"}
+                }
+            },
+            {
+                "$project": {
+                    "name": "$_id",
+                    "queries": "$count",
+                    "revenue": "$total_cost",
+                    "seconds": "$total_seconds"
+                }
+            }
+        ]
+        results = list(db.generations.aggregate(pipeline))
+        # Add display details
+        for res in results:
+            if not res["name"]: res["name"] = "Unknown"
+            res["share"] = round((res["queries"] / sum(r["queries"] for r in results) * 100) if results else 0, 1)
+            res["revenue_inr"] = round(res["revenue"] * 85.0, 2)
+        return results
 
     def get_summary(self, db: Database) -> dict:
         """Get overall usage summary from MongoDB."""
         stats = db.stats.find_one({"type": "overall_usage"}) or {}
+        # Fetch actual sum for cost if stats are out of sync
+        if not stats.get("total_estimated_cost_usd"):
+            actual_cost = list(db.generations.aggregate([{"$group": {"_id": None, "total": {"$sum": "$cost.total_usd"}}}]))
+            stats["total_estimated_cost_usd"] = actual_cost[0]["total"] if actual_cost else 0.0
+
         recent = list(db.generations.find().sort("timestamp", -1).limit(10))
         for r in recent: r["_id"] = str(r["_id"])
         
@@ -153,6 +208,7 @@ class UsageService:
             "total_script_tokens": stats.get("total_script_tokens", {"input": 0, "output": 0}),
             "total_video_seconds": round(stats.get("total_video_seconds", 0), 1),
             "total_estimated_cost_usd": round(stats.get("total_estimated_cost_usd", 0.0), 4),
+            "total_estimated_cost_inr": round(stats.get("total_estimated_cost_usd", 0.0) * 83.5, 2),
             "recent_generations": recent,
         }
 
@@ -161,10 +217,12 @@ class UsageService:
         today_str = datetime.now(IST).strftime("%d %b %Y")
         today_gens = list(db.generations.find({"date": today_str}))
         
-        total_cost = sum(g["cost"]["total_usd"] for g in today_gens)
+        total_cost = sum(g.get("cost", {}).get("total_usd", 0) for g in today_gens)
         total_tokens = sum(g.get("script_input_tokens", 0) + g.get("script_output_tokens", 0) for g in today_gens)
         
-        for g in today_gens: g["_id"] = str(g["_id"])
+        for g in today_gens: 
+            g["_id"] = str(g["_id"])
+            if "timestamp" in g: g["timestamp"] = str(g["timestamp"])
         
         return {
             "date": today_str,

@@ -298,25 +298,26 @@ async def generate_video(
                 video_duration_actual = duration_val
         except:
             video_duration_actual = min(duration, 8)
+    print(f"DEBUG: Logging generation - Topic: {topic}, Language: {language}")
     # Log usage in MongoDB
     usage_entry = usage_service.log_generation(
         db=db,
         topic=topic,
         script=script,
-        language=language_name,
+        language=language,
         engine=engine,
         voice=voice,
         duration_requested=duration,
         video_duration_actual=video_duration_actual,
-        video_file_size_bytes=video_file_size_bytes,
-        script_input_tokens=script_input_tokens,
-        script_output_tokens=script_output_tokens,
-        tts_characters=tts_characters,
+        video_file_size_bytes=video_file_size,
+        script_input_tokens=0,
+        script_output_tokens=0,
+        tts_characters=len(script),
         captions_enabled=(captions_enabled == "true"),
         caption_style=caption_style if captions_enabled == "true" else "",
-        formats_generated=formats_generated,
-        dub_languages=dub_languages_list,
-        video_model=video_model,
+        formats_generated=list(format_urls.keys()),
+        dub_languages=[lang.strip() for lang in dub_languages.split(",") if lang.strip()],
+        video_model=video_model_used,
         user_email=user_email
     )
 
@@ -650,13 +651,19 @@ async def get_admin_stats(db: Database = Depends(get_db)):
         except:
             continue
             
+    # Calculate a dynamic system load based on recent activity (last 1 hour)
+    one_hour_ago = datetime.now(IST) - timedelta(hours=1)
+    recent_gens_count = db.generations.count_documents({"timestamp": {"$gt": one_hour_ago}})
+    # Simple heuristic: 10 concurrent generations = 100% load
+    load_percent = min(100, (recent_gens_count / 10) * 100)
+    
     return {
         "status": "success",
         "data": {
             "total_users": total_users,
             "total_generations": usage["total_generations"],
             "total_revenue_inr": total_revenue_inr,
-            "system_load": "24.2%", # Heuristic/Static for now but could be dynamic
+            "system_load": f"{load_percent:.1f}%",
             "revenue_formatted": f"₹{total_revenue_inr/100000:.1f}L" if total_revenue_inr >= 100000 else f"₹{total_revenue_inr:,}"
         }
     }
@@ -724,19 +731,28 @@ async def get_weekly_analytics(db: Database = Depends(get_db)):
 @app.get("/admin/analytics/models")
 async def get_model_distribution(db: Database = Depends(get_db)):
     """Calculate distribution of used models."""
-    gens = list(db.generations.find().limit(100))
-    # Count models
-    counts = {}
-    for g in gens:
-        m = g.get("video_model") or "Veo Fast"
-        counts[m] = counts.get(m, 0) + 1
-        
-    total = len(gens) or 1
+    model_stats = usage_service.get_model_usage(db)
+    total_queries = sum(m["queries"] for m in model_stats) or 1
+    
     return {
         "status": "success",
         "data": [
-            {"name": name, "value": round((count/total)*100)} for name, count in counts.items()
+            {
+                "name": m["name"], 
+                "value": round((m["queries"] / total_queries) * 100),
+                "queries": m["queries"],
+                "revenue": m["revenue"]
+            } for m in model_stats
         ]
+    }
+
+@app.get("/admin/pricing")
+async def get_pricing():
+    """Get dynamic pricing for all models."""
+    from services.usage_service import PRICING
+    return {
+        "status": "success",
+        "data": PRICING
     }
 
 

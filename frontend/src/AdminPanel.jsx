@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard, Users, BarChart3, Settings, LogOut,
-    ArrowLeft, Search, Plus, Trash2, Edit2, CheckCircle2,
+    ArrowLeft, Search, Plus, Trash2, Edit, CheckCircle2,
     AlertCircle, X, Zap, Globe, Cpu, Video, CreditCard,
     TrendingUp, TrendingDown, Clock, Activity, Shield,
     Download, ChevronRight, DollarSign, Lock, Database,
-    Twitter, Linkedin, Github, Instagram
+    Twitter, Linkedin, Github, Instagram, Bell
 } from 'lucide-react';
 import { API_BASE_URL } from './config';
 import './AdminPanel.css';
@@ -23,8 +23,18 @@ const AI_MODELS = [
         tags: [{ icon: Zap, text: "High Reasoning" }, { icon: Database, text: "Complex Tasks" }]
     },
     {
+        id: "gemini-1.5-flash",
+        name: "Gemini 1.5 Flash",
+        provider: "Google",
+        inputPrice: "$0.075",
+        outputPrice: "$0.30",
+        estCostText: "$0.001-0.005",
+        monthlyEst: "$0.01 / $100",
+        tags: [{ icon: Zap, text: "Ultra Fast" }, { icon: Activity, text: "Conversational" }]
+    },
+    {
         id: "gemini-2.5-flash",
-        name: "Gemini 3 Flash Preview",
+        name: "Gemini 2.5 Flash",
         provider: "Google",
         inputPrice: "$0.075",
         outputPrice: "$0.30",
@@ -88,6 +98,7 @@ const AdminPanel = ({ navigate }) => {
     const [userIdToDelete, setUserIdToDelete] = useState(null);
 
     // AI Models State
+    const [dynamicModels, setDynamicModels] = useState(AI_MODELS);
     const [activeModel, setActiveModel] = useState(AI_MODELS[1]); // Default to Gemini 3 Flash
     const [confirmModel, setConfirmModel] = useState(null);
     const [showModelModal, setShowModelModal] = useState(false);
@@ -110,7 +121,8 @@ const AdminPanel = ({ navigate }) => {
                     fetchAnalytics(),
                     fetchTransactions(),
                     fetchSystemStats(),
-                    fetchTopAiUsers()
+                    fetchTopAiUsers(),
+                    fetchPricing()
                 ]);
             } catch (err) {
                 console.error("Data loading error:", err);
@@ -137,6 +149,56 @@ const AdminPanel = ({ navigate }) => {
             console.error('Failed to fetch analytics:', error);
         }
     };
+
+    const fetchPricing = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/admin/pricing`);
+            const data = await response.json();
+            if (data.status === 'success') {
+                const backendPricing = data.data;
+                const updated = dynamicModels.map(m => {
+                    const rates = backendPricing[m.id];
+                    if (rates) {
+                        return {
+                            ...m,
+                            inputPrice: rates.input_per_1k_tokens !== undefined ? `$${rates.input_per_1k_tokens}` : (rates.per_second ? `$${rates.per_second}/s` : 'Free'),
+                            outputPrice: rates.output_per_1k_tokens !== undefined ? `$${rates.output_per_1k_tokens}` : 'N/A'
+                        };
+                    }
+                    return m;
+                });
+                setDynamicModels(updated);
+                const current = updated.find(m => m.id === activeModel.id);
+                if (current) setActiveModel(current);
+            }
+        } catch (error) {
+            console.error('Failed to fetch pricing:', error);
+        }
+    };
+
+    // Helper to sync stats into dynamicModels
+    useEffect(() => {
+        if (analyticsData.modelDistribution.length > 0) {
+            setDynamicModels(prev => prev.map(model => {
+                const stats = analyticsData.modelDistribution.find(s => s.name === model.id);
+                if (stats) {
+                    return {
+                        ...model,
+                        queries: stats.queries || 0,
+                        revenue: stats.revenue || 0,
+                        revenue_inr: stats.revenue_inr || 0
+                    };
+                }
+                return { ...model, queries: model.queries || 0, revenue: model.revenue || 0, revenue_inr: model.revenue_inr || 0 };
+            }));
+        }
+    }, [analyticsData.modelDistribution]);
+
+    // Sync active model details when dynamicModels updates
+    useEffect(() => {
+        const current = dynamicModels.find(m => m.id === activeModel.id);
+        if (current) setActiveModel(current);
+    }, [dynamicModels]);
 
     const fetchTopAiUsers = async () => {
         try {
@@ -176,7 +238,7 @@ const AdminPanel = ({ navigate }) => {
 
     const fetchUsageData = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/usage`);
+            const response = await fetch(`${API_BASE_URL}/admin/usage-summary`);
             const data = await response.json();
             if (data.status === 'success') {
                 setUsageData(data.data);
@@ -300,12 +362,10 @@ const AdminPanel = ({ navigate }) => {
     const handleLogout = async () => {
         try {
             await fetch(`${API_BASE_URL}/logout`, { method: 'POST' });
-            localStorage.removeItem('user');
-            if (navigate) navigate('/login');
-            else window.location.href = '/login';
         } catch (error) {
             console.error('Logout failed:', error);
-            localStorage.removeItem('user');
+        } finally {
+            localStorage.clear();
             if (navigate) navigate('/login');
             else window.location.href = '/login';
         }
@@ -335,12 +395,6 @@ const AdminPanel = ({ navigate }) => {
                     onClick={() => setView('users')}
                 >
                     <Users size={18} /> User Management
-                </button>
-                <button
-                    className={`admin-nav-item ${view === 'analytics' ? 'active' : ''}`}
-                    onClick={() => setView('analytics')}
-                >
-                    <BarChart3 size={18} /> Detailed Analytics
                 </button>
                 <button
                     className={`admin-nav-item ${view === 'ai_models' ? 'active' : ''}`}
@@ -519,100 +573,6 @@ const AdminPanel = ({ navigate }) => {
         </div>
     );
 
-    const renderAnalytics = () => (
-        <div className="admin-view animate-fade">
-            <header className="admin-header">
-                <div>
-                    <h1>Detailed Analytics</h1>
-                    <p>Deep dive into API consumption and performance metrics.</p>
-                </div>
-                <button className="primary-btn mini"><Download size={16} /> Export Report</button>
-            </header>
-
-            <div className="analytics-grid">
-                <div className="admin-section chart-card">
-                    <h3>Weekly Consumption Trend</h3>
-                    <div className="chart-placeholder">
-                        <div className="bar-chart">
-                            {analyticsData.weeklyUsage.map((day, idx) => (
-                                <div key={idx} className="bar-wrap">
-                                    <div className="bar" style={{ height: `${(day.count / 120) * 100}%` }}>
-                                        <span className="bar-tooltip">{day.count} gens</span>
-                                    </div>
-                                    <span className="bar-label">{day.day}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="admin-section distribution-card">
-                    <h3>Model Distribution</h3>
-                    <div className="distribution-list">
-                        {analyticsData.modelDistribution.map((model, idx) => (
-                            <div key={idx} className="dist-item">
-                                <div className="dist-info">
-                                    <span>{model.name}</span>
-                                    <span>{model.share}%</span>
-                                </div>
-                                <div className="progress-bar">
-                                    <div className="progress-fill" style={{ width: `${model.share}%` }}></div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="analytics-insight">
-                        <Zap size={16} className="zap-icon" />
-                        <p><strong>Insight:</strong> Gemini 2.0 Flash usage has increased by 15% this week due to lower latency.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="usage-breakdown-grid">
-                <div className="admin-section">
-                    <h3>Token Usage Breakdown</h3>
-                    <div className="metric-row">
-                        <span>Input Tokens</span>
-                        <span className="font-mono">{(usageData?.total_script_tokens?.input || 0).toLocaleString()}</span>
-                    </div>
-                    <div className="metric-row">
-                        <span>Output Tokens</span>
-                        <span className="font-mono">{(usageData?.total_script_tokens?.output || 0).toLocaleString()}</span>
-                    </div>
-                    <div className="metric-row total">
-                        <span>Total Cost (USD)</span>
-                        <span className="font-mono">${usageData?.total_estimated_cost_usd?.toFixed(4)}</span>
-                    </div>
-                </div>
-                <div className="admin-section">
-                    <h3>Infrastructure Health</h3>
-                    <div className="health-grid">
-                        <div className="health-item">
-                            <Cpu size={18} />
-                            <div>
-                                <div className="h-label">Core Load</div>
-                                <div className="h-value">12%</div>
-                            </div>
-                        </div>
-                        <div className="health-item">
-                            <Database size={18} />
-                            <div>
-                                <div className="h-label">DB Latency</div>
-                                <div className="h-value">4ms</div>
-                            </div>
-                        </div>
-                        <div className="health-item">
-                            <Globe size={18} />
-                            <div>
-                                <div className="h-label">Global CDN</div>
-                                <div className="h-value">99.9%</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
 
     const renderTransactions = () => (
         <div className="admin-view animate-fade">
@@ -756,13 +716,6 @@ const AdminPanel = ({ navigate }) => {
                             <button className="text-btn">Update</button>
                         </div>
                     </div>
-                    <div className="key-card">
-                        <div className="key-label">D-ID Service Key</div>
-                        <div className="key-input-wrap">
-                            <input type="password" value="••••••••••••••••••••••••••••" readOnly />
-                            <button className="text-btn">Update</button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -822,33 +775,25 @@ const AdminPanel = ({ navigate }) => {
                         <button className="icon-btn-small"><Edit size={14} /></button>
                     </div>
                     <div className="budget-stats">
-                        <div className="budget-amounts">{activeModel.monthlyEst}</div>
-                        <div className="budget-inr">₹1 / ₹8225</div>
-                        <div className="budget-pct">0.0% used</div>
+                        <div className="budget-amounts">${activeModel.revenue?.toFixed(2) || '0.00'} / $100</div>
+                        <div className="budget-inr">₹{(activeModel.revenue_inr || (activeModel.revenue * 85))?.toFixed(2)} spent</div>
+                        <div className="budget-pct">{Math.min(100, ((activeModel.revenue || 0) / 100 * 100)).toFixed(1)}% used</div>
                     </div>
                     <div className="budget-progress-bg">
-                        <div className="budget-progress-fill" style={{ width: '2%' }}></div>
+                        <div className="budget-progress-fill" style={{ width: `${Math.min(100, ((activeModel.revenue || 0) / 100 * 100))}%` }}></div>
                     </div>
                 </div>
             </div>
 
             <div className="admin-stats-grid ai-stats-row">
                 <div className="ai-stat-card">
-                    <div className="stat-label-center">TOTAL QUERIES (ALL TIME)</div>
-                    <div className="stat-value-center">5</div>
-                </div>
-                <div className="ai-stat-card">
-                    <div className="stat-label-center">QUERIES TODAY</div>
-                    <div className="stat-value-center">4</div>
-                </div>
-                <div className="ai-stat-card">
-                    <div className="stat-label-center">TOTAL COST (THIS MONTH)</div>
-                    <div className="stat-value-center">$0.01</div>
-                    <div className="stat-sub-center">₹0.82</div>
+                    <div className="stat-label-center">TOTAL REVENUE (EST.)</div>
+                    <div className="stat-value-center">${usageData?.total_estimated_cost_usd?.toFixed(2)}</div>
+                    <div className="stat-sub-center">₹{usageData?.total_estimated_cost_inr?.toFixed(2)}</div>
                 </div>
                 <div className="ai-stat-card">
                     <div className="stat-label-center">TOKENS PROCESSED</div>
-                    <div className="stat-value-center">0.01M</div>
+                    <div className="stat-value-center">{(((usageData?.total_script_tokens?.input || 0) + (usageData?.total_script_tokens?.output || 0)) / 1000).toFixed(2)}K</div>
                 </div>
             </div>
 
@@ -915,28 +860,32 @@ const AdminPanel = ({ navigate }) => {
                     </div>
 
                     <div className="model-list">
-                        {AI_MODELS.map((model) => (
-                            <div
-                                key={model.id}
-                                className={`model-list-item ${activeModel.id === model.id ? 'active' : ''}`}
-                                onClick={() => {
-                                    if (activeModel.id !== model.id) {
-                                        setConfirmModel(model);
-                                        setShowModelModal(true);
-                                    }
-                                }}
-                            >
-                                <div className="model-item-info">
-                                    <h4>{model.name} {activeModel.id === model.id ? null : <span className="code-id">{model.id}</span>}</h4>
-                                    <div className="model-item-cost">
-                                        {model.id.includes('veo') ? (model.id.includes('fast') ? 'Video Generation (Fast)' : 'Video Generation (Standard)') : `Input: ${model.inputPrice} | Output: ${model.outputPrice}`}
+                        {[...dynamicModels]
+                            .sort((a, b) => (b.queries || 0) - (a.queries || 0))
+                            .map((model) => {
+                            return (
+                                <div
+                                    key={model.id}
+                                    className={`model-list-item ${activeModel.id === model.id ? 'active' : ''}`}
+                                    onClick={() => {
+                                        if (activeModel.id !== model.id) {
+                                            setConfirmModel(model);
+                                            setShowModelModal(true);
+                                        }
+                                    }}
+                                >
+                                    <div className="model-item-info">
+                                        <h4>{model.name} {activeModel.id === model.id ? null : <span className="code-id">{model.id}</span>}</h4>
+                                        <div className="model-item-cost">
+                                            {model.queries || 0} Queries • ${model.revenue?.toFixed(2) || '0.00'} Spent
+                                        </div>
+                                    </div>
+                                    <div className={`radio-circle ${activeModel.id === model.id ? 'active' : ''}`}>
+                                        {activeModel.id === model.id && <div className="radio-inner"></div>}
                                     </div>
                                 </div>
-                                <div className={`radio-circle ${activeModel.id === model.id ? 'active' : ''}`}>
-                                    {activeModel.id === model.id && <div className="radio-inner"></div>}
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -1028,7 +977,6 @@ const AdminPanel = ({ navigate }) => {
                         </div>
                     </div>
                 )}
-                {view === 'analytics' && renderAnalytics()}
                 {view === 'ai_models' && renderAIModels()}
                 {view === 'credits' && renderTransactions()}
                 {view === 'settings' && renderSettings()}

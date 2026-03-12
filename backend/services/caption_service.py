@@ -155,8 +155,7 @@ def burn_captions(
     # Determine font size based on aspect ratio
     font_sizes = {
         "16:9": 22,
-        "9:16": 18,
-        "1:1": 20
+        "9:16": 18
     }
     font_size = font_sizes.get(aspect_ratio, 22)
 

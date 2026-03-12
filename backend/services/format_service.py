@@ -35,12 +35,6 @@ FORMAT_CONFIGS = {
         "width": 1080,
         "height": 1920,
         "ratio": 9 / 16
-    },
-    "1:1": {
-        "name": "Square (Instagram)",
-        "width": 1080,
-        "height": 1080,
-        "ratio": 1.0
     }
 }
 

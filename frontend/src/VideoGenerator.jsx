@@ -139,8 +139,7 @@ const DUB_LANGUAGES = [
 
 const FORMAT_ICONS = {
     '16:9': Monitor,
-    '9:16': Smartphone,
-    '1:1': Square
+    '9:16': Smartphone
 };
 
 const PRESET_CHARACTERS = [
@@ -148,6 +147,7 @@ const PRESET_CHARACTERS = [
     { id: 'girl2', name: 'Professional Girl 2', url: '/characters/girl2.png', gender: 'female' },
     { id: 'boy1', name: 'Professional Boy 1', url: '/characters/boy1.png', gender: 'male' },
     { id: 'boy2', name: 'Professional Boy 2', url: '/characters/boy2.png', gender: 'male' },
+    { id: 'boy3', name: 'Professional Boy 3', url: '/characters/boy3.png', gender: 'male' },
 ];
 
 const CustomSelect = ({ value, onChange, options, icon: Icon }) => {
@@ -253,11 +253,10 @@ const VideoGenerator = ({ navigate }) => {
     const handleLogout = async () => {
         try {
             await fetch(`${API_BASE_URL}/logout`, { method: 'POST' });
-            localStorage.removeItem('user');
-            navigate('/login');
         } catch (error) {
-            console.error('Logout failed:', error);
-            localStorage.removeItem('user');
+            console.error('Logout request failed:', error);
+        } finally {
+            localStorage.clear(); // Clear everything
             navigate('/login');
         }
     };
@@ -606,7 +605,7 @@ const VideoGenerator = ({ navigate }) => {
                             options={[
                                 { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
                                 { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-                                { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+                                { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
                             ]}
                         />
                     </div>
@@ -643,8 +642,7 @@ const VideoGenerator = ({ navigate }) => {
                             onChange={setAspectRatio}
                             options={[
                                 { value: '16:9', label: '16:9 (YouTube)' },
-                                { value: '9:16', label: '9:16 (Reels/TikTok)' },
-                                { value: '1:1', label: '1:1 (Square)' }
+                                { value: '9:16', label: '9:16 (Reels/TikTok)' }
                             ]}
                         />
                     </div>
@@ -769,7 +767,7 @@ const VideoGenerator = ({ navigate }) => {
                                 <Monitor size={18} />
                                 <div>
                                     <h4>Multi-Format Output</h4>
-                                    <p>Auto-generate 16:9, 9:16, and 1:1 versions</p>
+                                    <p>Auto-generate 16:9 and 9:16 versions</p>
                                 </div>
                             </div>
                             <label className="toggle-switch" onClick={(e) => e.stopPropagation()}>
