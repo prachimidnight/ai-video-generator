@@ -1067,7 +1067,7 @@ const VideoGenerator = ({ navigate }) => {
                                 <h4>Multi-Format Export</h4>
                             </div>
                             <div className="format-export-grid">
-                                {['16:9', '9:16', '1:1'].map(ratio => {
+                                {['16:9', '9:16'].map(ratio => {
                                     const Icon = FORMAT_ICONS[ratio];
                                     const hasFormat = formatResults[ratio];
                                     return (
