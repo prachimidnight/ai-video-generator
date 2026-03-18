@@ -27,3 +27,12 @@ class UserResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class AdminUserCreate(BaseModel):
+    full_name: str
+    email: EmailStr
+    password: Optional[str] = None
+    subscription_tier: str = "basic"
+    available_credits: int = 0
+    role: str = "user"

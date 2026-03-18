@@ -679,6 +679,31 @@ input[type="range"] {
   background: white;
 }
 
+/* Toggle Row & Text Styles */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.t-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.t-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
 /* Caption Styles */
 .caption-styles {
   display: grid;

@@ -23,3 +23,9 @@ export const getApiUrl = () => {
 };
 
 export const API_BASE_URL = getApiUrl();
+
+export const getAuthHeaders = () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+};

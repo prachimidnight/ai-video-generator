@@ -23,6 +23,48 @@ function App() {
     setCurrentPath(path);
   };
 
+  const getSession = () => {
+    const token = localStorage.getItem('access_token');
+    const userStr = localStorage.getItem('user');
+    let user = null;
+    try {
+      user = userStr ? JSON.parse(userStr) : null;
+    } catch {
+      user = null;
+    }
+    return { token, user };
+  };
+
+  // Route guards + redirects must NOT run during render
+  useEffect(() => {
+    const { token, user } = getSession();
+    // App area only needs a user session; manager area requires token (backend is protected)
+    const hasUserSession = Boolean(user?.email);
+    const hasToken = Boolean(token);
+
+    // Keep a separate manager URL for admin
+    if (currentPath === '/admin') {
+      navigate('/manager');
+      return;
+    }
+
+    if (currentPath === '/app' && !hasUserSession) {
+      navigate('/login');
+      return;
+    }
+
+    if (currentPath === '/manager') {
+      if (!hasUserSession || !hasToken) {
+        navigate('/login');
+        return;
+      }
+      if (user?.role !== 'admin') {
+        navigate('/app');
+        return;
+      }
+    }
+  }, [currentPath]);
+
   const renderComponent = () => {
     switch (currentPath) {
       case '/':
@@ -33,7 +75,7 @@ function App() {
         return <SignupPage navigate={navigate} />;
       case '/app':
         return <VideoGenerator navigate={navigate} />;
-      case '/admin':
+      case '/manager':
         return <AdminPanel navigate={navigate} />;
       default:
         // Default to landing page or app if path not found

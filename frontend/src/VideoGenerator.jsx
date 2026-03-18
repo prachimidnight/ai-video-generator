@@ -230,10 +230,6 @@ const VideoGenerator = ({ navigate }) => {
     // Multi-Format State
     const [generateAllFormats, setGenerateAllFormats] = useState(false);
 
-    // Auto-Dub State
-    const [dubEnabled, setDubEnabled] = useState(false);
-    const [selectedDubLanguages, setSelectedDubLanguages] = useState([]);
-    const [dubLangDropdownOpen, setDubLangDropdownOpen] = useState(false);
 
     // Status State
     const [loading, setLoading] = useState(false);
@@ -246,7 +242,6 @@ const VideoGenerator = ({ navigate }) => {
     // Post-processing state
     const [postProcessing, setPostProcessing] = useState(false);
     const [formatResults, setFormatResults] = useState({});
-    const [dubResults, setDubResults] = useState([]);
     const [copiedText, setCopiedText] = useState(null);
 
     // Subscription State
@@ -256,7 +251,9 @@ const VideoGenerator = ({ navigate }) => {
         } catch (error) {
             console.error('Logout request failed:', error);
         } finally {
-            localStorage.clear(); // Clear everything
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('video_history');
             navigate('/login');
         }
     };
@@ -265,6 +262,10 @@ const VideoGenerator = ({ navigate }) => {
     const [subscriptionTier, setSubscriptionTier] = useState('free');
     const [showPricingModal, setShowPricingModal] = useState(false);
     const [credits, setCredits] = useState({ remaining: 0, limit: 2 });
+
+    // Cinematic options
+    const [useTts, setUseTts] = useState(true); // if false => Silent cinematic (no voiceover)
+    const [useImage, setUseImage] = useState(true); // if false => Prompt-only, no face image
 
     const fetchCreditData = async () => {
         try {
@@ -359,17 +360,9 @@ const VideoGenerator = ({ navigate }) => {
         }
     };
 
-    const toggleDubLanguage = (langId) => {
-        setSelectedDubLanguages(prev => {
-            if (prev.includes(langId)) {
-                return prev.filter(l => l !== langId);
-            }
-            return [...prev, langId];
-        });
-    };
 
     const handleDraftScript = async () => {
-        if (!topic || !image) return;
+        if (!topic || (useImage && !image)) return;
         setLoading(true);
         try {
             const formData = new FormData();
@@ -407,7 +400,9 @@ const VideoGenerator = ({ navigate }) => {
         try {
             const formData = new FormData();
             formData.append('topic', topic);
-            formData.append('image', image);
+            if (useImage && image) {
+                formData.append('image', image);
+            }
             formData.append('script', script);
             formData.append('language', language);
             formData.append('voice', selectedVoice);
@@ -420,6 +415,9 @@ const VideoGenerator = ({ navigate }) => {
             formData.append('aspect_ratio', aspectRatio);
             formData.append('engine', generationEngine);
             formData.append('veo_quality', veoQuality);
+            // Cinematic toggles
+            formData.append('use_tts', useTts ? 'true' : 'false');
+            formData.append('use_image', useImage ? 'true' : 'false');
 
             const user = JSON.parse(localStorage.getItem('user'));
             formData.append('user_email', user.email);
@@ -431,10 +429,6 @@ const VideoGenerator = ({ navigate }) => {
             // Multi-format params
             formData.append('generate_all_formats', generateAllFormats ? 'true' : 'false');
 
-            // Auto-dub params
-            if (dubEnabled && selectedDubLanguages.length > 0) {
-                formData.append('dub_languages', selectedDubLanguages.join(','));
-            }
 
             setStatusMessage('Generating video... This may take a few minutes.');
             const response = await fetch(`${API_BASE_URL}/generate`, {
@@ -454,9 +448,6 @@ const VideoGenerator = ({ navigate }) => {
             // Extract extra results
             if (data.data?.format_urls) {
                 setFormatResults(data.data.format_urls);
-            }
-            if (data.data?.dub_results) {
-                setDubResults(data.data.dub_results);
             }
 
             saveToHistory({
@@ -545,32 +536,6 @@ const VideoGenerator = ({ navigate }) => {
         }
     };
 
-    // Post-generation: auto-dub
-    const handlePostDub = async (targetLanguages) => {
-        if (!script) return;
-        setPostProcessing(true);
-        try {
-            const formData = new FormData();
-            formData.append('script', script);
-            formData.append('source_language', language);
-            formData.append('target_languages', targetLanguages.join(','));
-            formData.append('speed', voiceSpeed);
-            formData.append('pitch', voicePitch);
-
-            const response = await fetch(`${API_BASE_URL}/auto-dub`, {
-                method: 'POST',
-                body: formData,
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                setDubResults(data.data.dubs);
-            }
-        } catch (error) {
-            console.error('Auto-dub failed:', error);
-        } finally {
-            setPostProcessing(false);
-        }
-    };
 
     const copyToClipboard = (text, id) => {
         navigator.clipboard.writeText(text);
@@ -668,7 +633,11 @@ const VideoGenerator = ({ navigate }) => {
                     </div>
                     <div className="or-divider">OR</div>
                     <label><ImageIcon size={14} /> Upload Custom Face</label>
-                    {!previewUrl || selectedCharacterId ? (
+                    {!useImage ? (
+                        <div className="preview-mini">
+                            <span className="selected-tag">Face image not required (prompt-only)</span>
+                        </div>
+                    ) : !previewUrl || selectedCharacterId ? (
                         <div className="upload-zone">
                             <input type="file" accept="image/*" onChange={handleFileChange} id="img-up" hidden />
                             <label htmlFor="img-up" className="upload-label">
@@ -694,7 +663,7 @@ const VideoGenerator = ({ navigate }) => {
                 <button
                     className="primary-btn"
                     onClick={handleDraftScript}
-                    disabled={!topic || !image || loading}
+                    disabled={!topic || (useImage && !image) || loading}
                 >
                     {loading ? <Loader2 className="spinning" /> : <ChevronRight />}
                     Draft Script
@@ -789,76 +758,7 @@ const VideoGenerator = ({ navigate }) => {
                                             {ratio === aspectRatio && <span className="badge">Primary</span>}
                                         </div>
                                     ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Auto-Dubbing Card */}
-                    <div className="feature-card">
-                        <div className="feature-card-header" onClick={() => setDubEnabled(!dubEnabled)}>
-                            <div className="feature-info">
-                                <Globe size={18} />
-                                <div>
-                                    <h4>Auto-Dubbing (Multi-Language)</h4>
-                                    <p>Translate & generate audio in multiple languages</p>
-                                </div>
-                            </div>
-                            <label className="toggle-switch" onClick={(e) => e.stopPropagation()}>
-                                <input
-                                    type="checkbox"
-                                    checked={dubEnabled}
-                                    onChange={(e) => setDubEnabled(e.target.checked)}
-                                />
-                                <span className="toggle-slider"></span>
-                            </label>
-                        </div>
-                        {dubEnabled && (
-                            <div className="feature-card-body">
-                                <div className="dub-lang-selector">
-                                    <div
-                                        className="dub-lang-trigger"
-                                        onClick={() => setDubLangDropdownOpen(!dubLangDropdownOpen)}
-                                    >
-                                        <span>
-                                            {selectedDubLanguages.length === 0
-                                                ? 'Select languages to dub into...'
-                                                : `${selectedDubLanguages.length} language(s) selected`
-                                            }
-                                        </span>
-                                        {dubLangDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                    </div>
-                                    {dubLangDropdownOpen && (
-                                        <div className="dub-lang-dropdown">
-                                            {DUB_LANGUAGES.filter(l => l.id !== language).map(lang => (
-                                                <label key={lang.id} className="dub-lang-option">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedDubLanguages.includes(lang.id)}
-                                                        onChange={() => toggleDubLanguage(lang.id)}
-                                                    />
-                                                    <span className="lang-flag">{lang.flag}</span>
-                                                    <span className="lang-name">{lang.name}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {selectedDubLanguages.length > 0 && (
-                                        <div className="selected-langs-chips">
-                                            {selectedDubLanguages.map(langId => {
-                                                const lang = DUB_LANGUAGES.find(l => l.id === langId);
-                                                return (
-                                                    <span key={langId} className="lang-chip">
-                                                        {lang?.flag} {lang?.name}
-                                                        <button onClick={() => toggleDubLanguage(langId)}>
-                                                            <X size={12} />
-                                                        </button>
-                                                    </span>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
+                                  </div>
                             </div>
                         )}
                     </div>
@@ -878,6 +778,38 @@ const VideoGenerator = ({ navigate }) => {
                                     <div className="engine-desc">Cinematic Video (Selected)</div>
                                 </div>
                             </button>
+                        </div>
+                    </div>
+
+                    <div className="settings-card">
+                        <h3><Settings size={16} /> Cinematic Options</h3>
+                        <div className="toggle-row">
+                            <label className="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    checked={!useTts}
+                                    onChange={(e) => setUseTts(!e.target.checked)}
+                                />
+                                <span className="toggle-slider"></span>
+                            </label>
+                            <div className="toggle-text">
+                                <div className="t-title">Silent Cinematic</div>
+                                <div className="t-desc">No voiceover (no TTS)</div>
+                            </div>
+                        </div>
+                        <div className="toggle-row" style={{ marginTop: 10 }}>
+                            <label className="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    checked={!useImage}
+                                    onChange={(e) => setUseImage(!e.target.checked)}
+                                />
+                                <span className="toggle-slider"></span>
+                            </label>
+                            <div className="toggle-text">
+                                <div className="t-title">Generate Without Face Image</div>
+                                <div className="t-desc">Prompt-only cinematic shot</div>
+                            </div>
                         </div>
                     </div>
 
@@ -905,7 +837,7 @@ const VideoGenerator = ({ navigate }) => {
 
                     <div className="settings-card">
                         <h3><User size={16} /> Voice Settings</h3>
-                        <div className="input-group">
+                        <div className="input-group" style={{ opacity: useTts ? 1 : 0.5 }}>
                             <label>Pick a Voice</label>
                             <CustomSelect
                                 value={selectedVoice}
@@ -914,16 +846,16 @@ const VideoGenerator = ({ navigate }) => {
                                     value: v.id,
                                     label: v.name
                                 }))}
-                            />
+                                />
                         </div>
-                        <div className="range-controls">
+                        <div className="range-controls" style={{ opacity: useTts ? 1 : 0.5 }}>
                             <div className="range-item">
                                 <span>Speed: {voiceSpeed}%</span>
-                                <input type="range" min="-50" max="50" value={voiceSpeed} onChange={(e) => setVoiceSpeed(parseInt(e.target.value))} />
+                                <input type="range" min="-50" max="50" value={voiceSpeed} onChange={(e) => setVoiceSpeed(parseInt(e.target.value))} disabled={!useTts} />
                             </div>
                             <div className="range-item">
                                 <span>Pitch: {voicePitch}Hz</span>
-                                <input type="range" min="-20" max="20" value={voicePitch} onChange={(e) => setVoicePitch(parseInt(e.target.value))} />
+                                <input type="range" min="-20" max="20" value={voicePitch} onChange={(e) => setVoicePitch(parseInt(e.target.value))} disabled={!useTts} />
                             </div>
                         </div>
                     </div>
@@ -965,7 +897,7 @@ const VideoGenerator = ({ navigate }) => {
                         </div>
                     </div>
 
-                    {voiceOnlyUrl && (
+                    {voiceOnlyUrl && useTts && (
                         <div className="voice-download-card">
                             <div className="voice-info">
                                 <Activity size={18} />
@@ -980,14 +912,16 @@ const VideoGenerator = ({ navigate }) => {
                         </div>
                     )}
 
-                    <button
-                        className="voice-only-btn"
-                        onClick={handleGenerateVoiceOnly}
-                        disabled={loading || generatingVoice || !script}
-                    >
-                        {generatingVoice ? <Loader2 className="spinning" /> : <Mic size={18} />}
-                        Generate Voice Only
-                    </button>
+                    {useTts && (
+                        <button
+                            className="voice-only-btn"
+                            onClick={handleGenerateVoiceOnly}
+                            disabled={loading || generatingVoice || !script}
+                        >
+                            {generatingVoice ? <Loader2 className="spinning" /> : <Mic size={18} />}
+                            Generate Voice Only
+                        </button>
+                    )}
 
                     <button className="generate-final-btn" onClick={handleFinalGenerate} disabled={loading}>
                         {loading ? <Loader2 className="spinning" /> : <Play size={18} />}
@@ -1042,15 +976,27 @@ const VideoGenerator = ({ navigate }) => {
                                     <div className="cost-value">{lastGenerationUsage.tts_characters || script.length}</div>
                                 </div>
                                 <div className="cost-item">
-                                    <div className="cost-label">Value (USD)</div>
-                                    <div className="cost-value highlight-usd">${lastGenerationUsage.cost?.total_paid_usd?.toFixed(4)}</div>
+                                    <div className="cost-label">Estimated Cost (USD)</div>
+                                    <div className="cost-value highlight-usd">${(lastGenerationUsage.cost?.total_usd ?? 0).toFixed(4)}</div>
                                 </div>
                                 <div className="cost-item">
-                                    <div className="cost-label">Value (INR)</div>
-                                    <div className="cost-value highlight-inr">₹{lastGenerationUsage.cost?.total_paid_inr?.toFixed(2)}</div>
+                                    <div className="cost-label">Estimated Cost (INR)</div>
+                                    <div className="cost-value highlight-inr">₹{(lastGenerationUsage.cost?.total_inr ?? 0).toFixed(2)}</div>
+                                </div>
+                                <div className="cost-item">
+                                    <div className="cost-label">Credits Deducted</div>
+                                    <div className="cost-value">1</div>
+                                </div>
+                                <div className="cost-item">
+                                    <div className="cost-label">Credits Remaining</div>
+                                    <div className="cost-value">{credits.remaining}</div>
                                 </div>
                             </div>
-                            <p className="cost-pricing-note">{lastGenerationUsage.pricing_note}</p>
+                            {lastGenerationUsage.cost?.breakdown && (
+                                <p className="cost-pricing-note">
+                                    Duration: {lastGenerationUsage.cost.breakdown.duration || 0}s • Tokens: {lastGenerationUsage.cost.breakdown.tokens || 0} • Chars: {lastGenerationUsage.cost.breakdown.chars || 0} • Dubs: {lastGenerationUsage.cost.breakdown.languages || 0}
+                                </p>
+                            )}
                         </div>
                     )}
 
@@ -1142,88 +1088,7 @@ const VideoGenerator = ({ navigate }) => {
                             </div>
                         )}
 
-                        {/* Auto-Dubbing Section */}
-                        <div className="post-tool-card">
-                            <div className="post-tool-header">
-                                <Globe size={18} />
-                                <h4>Auto-Dubbing</h4>
-                            </div>
 
-                            {dubResults.length > 0 ? (
-                                <div className="dub-results-list">
-                                    {dubResults.map((dub, idx) => (
-                                        <div key={idx} className="dub-result-item">
-                                            <div className="dub-lang-info">
-                                                <span className="dub-lang-flag">
-                                                    {DUB_LANGUAGES.find(l => l.id === dub.language)?.flag || '🌍'}
-                                                </span>
-                                                <span className="dub-lang-name">{dub.language}</span>
-                                            </div>
-                                            <div className="dub-actions">
-                                                <button
-                                                    className="copy-script-btn"
-                                                    onClick={() => copyToClipboard(dub.translated_script, `dub-${idx}`)}
-                                                    title="Copy translated script"
-                                                >
-                                                    {copiedText === `dub-${idx}` ? <Check size={14} /> : <Copy size={14} />}
-                                                </button>
-                                                {dub.audio_url && (
-                                                    <a href={dub.audio_url} target="_blank" download className="dub-audio-btn">
-                                                        <Download size={14} /> Audio
-                                                    </a>
-                                                )}
-                                            </div>
-                                            {dub.translated_script && (
-                                                <div className="dub-script-preview">
-                                                    {dub.translated_script.substring(0, 150)}
-                                                    {dub.translated_script.length > 150 ? '...' : ''}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="post-tool-body">
-                                    <div className="dub-lang-selector">
-                                        <div
-                                            className="dub-lang-trigger"
-                                            onClick={() => setDubLangDropdownOpen(!dubLangDropdownOpen)}
-                                        >
-                                            <span>
-                                                {selectedDubLanguages.length === 0
-                                                    ? 'Select languages...'
-                                                    : `${selectedDubLanguages.length} selected`
-                                                }
-                                            </span>
-                                            {dubLangDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                        </div>
-                                        {dubLangDropdownOpen && (
-                                            <div className="dub-lang-dropdown">
-                                                {DUB_LANGUAGES.filter(l => l.id !== language).map(lang => (
-                                                    <label key={lang.id} className="dub-lang-option">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedDubLanguages.includes(lang.id)}
-                                                            onChange={() => toggleDubLanguage(lang.id)}
-                                                        />
-                                                        <span className="lang-flag">{lang.flag}</span>
-                                                        <span className="lang-name">{lang.name}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <button
-                                        className="post-action-btn"
-                                        onClick={() => handlePostDub(selectedDubLanguages)}
-                                        disabled={postProcessing || selectedDubLanguages.length === 0}
-                                    >
-                                        {postProcessing ? <Loader2 size={14} className="spinning" /> : <Globe size={14} />}
-                                        Generate Dubs ({selectedDubLanguages.length})
-                                    </button>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </div>
             ) : (

@@ -30,9 +30,12 @@ const LoginPage = ({ navigate }) => {
 
             if (response.ok) {
                 console.log('Login successful:', data);
-                // Store user data if needed
+                // Store token + user for session
+                if (data.access_token) localStorage.setItem('access_token', data.access_token);
                 localStorage.setItem('user', JSON.stringify(data.user));
-                navigate('/app');
+                // Route based on role
+                if (data.user?.role === 'admin') navigate('/manager');
+                else navigate('/app');
             } else {
                 setError(data.detail || 'Login failed');
             }

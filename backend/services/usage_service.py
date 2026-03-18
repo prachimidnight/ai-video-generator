@@ -10,6 +10,9 @@ from pymongo.database import Database
 # IST timezone
 IST = timezone(timedelta(hours=5, minutes=30))
 
+# Currency conversion (keep consistent everywhere)
+USD_TO_INR = 85.0
+
 # Pricing - Kept for cost calculation logic
 PRICING = {
     "gemini-2.0-flash": { "input_per_1k_tokens": 0.0, "output_per_1k_tokens": 0.0 }, # Free tier normally
@@ -155,7 +158,7 @@ class UsageService:
             "tts_usd": round(tts_cost, 6),
             "dub_usd": round(dub_cost, 6),
             "total_usd": round(total, 4),
-            "total_inr": round(total * 85.0, 2), # Updated exchange rate
+            "total_inr": round(total * USD_TO_INR, 2),
             "breakdown": {
                 "tokens": script_input_tokens + script_output_tokens,
                 "duration": round(video_duration, 1),
@@ -189,7 +192,7 @@ class UsageService:
         for res in results:
             if not res["name"]: res["name"] = "Unknown"
             res["share"] = round((res["queries"] / sum(r["queries"] for r in results) * 100) if results else 0, 1)
-            res["revenue_inr"] = round(res["revenue"] * 85.0, 2)
+            res["revenue_inr"] = round(res["revenue"] * USD_TO_INR, 2)
         return results
 
     def get_summary(self, db: Database) -> dict:
@@ -208,7 +211,7 @@ class UsageService:
             "total_script_tokens": stats.get("total_script_tokens", {"input": 0, "output": 0}),
             "total_video_seconds": round(stats.get("total_video_seconds", 0), 1),
             "total_estimated_cost_usd": round(stats.get("total_estimated_cost_usd", 0.0), 4),
-            "total_estimated_cost_inr": round(stats.get("total_estimated_cost_usd", 0.0) * 83.5, 2),
+            "total_estimated_cost_inr": round(stats.get("total_estimated_cost_usd", 0.0) * USD_TO_INR, 2),
             "recent_generations": recent,
         }
 

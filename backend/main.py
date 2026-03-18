@@ -18,11 +18,16 @@ from services.usage_service import usage_service
 import time
 from pymongo.database import Database
 from fastapi import Depends
+from datetime import datetime, timedelta
+from fastapi.security import OAuth2PasswordBearer
+from fastapi import Header
+from dotenv import set_key, find_dotenv
 import models
 import schemas
 import auth
 from database import get_db
 from services.credit_service import credit_service
+from services.usage_service import IST, USD_TO_INR
 
 app = FastAPI(title="AI Video Generator API")
 
@@ -57,6 +62,40 @@ app.mount("/temp", StaticFiles(directory=temp_dir), name="temp")
 async def root():
     return {"message": "Welcome to the AI Video Generator API"}
 
+
+# ========================
+# AUTH HELPERS (defined early so all routes can use them)
+# ========================
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+
+def get_current_user(
+    db: Database = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+):
+    try:
+        payload = auth.decode_access_token(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    email = payload.get("sub")
+    if not email:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = db.users.find_one({"email": email, "status": True})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    # Attach role from DB (source of truth)
+    user["_id"] = str(user["_id"])
+    return user
+
+def require_admin(user=Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
 @app.post("/signup", response_model=schemas.UserResponse)
 def signup(user: schemas.UserCreate, db: Database = Depends(get_db)):
     # Check if user exists
@@ -78,19 +117,57 @@ def signup(user: schemas.UserCreate, db: Database = Depends(get_db)):
     
     return user_dict
 
+
+@app.post("/admin/users", response_model=schemas.UserResponse)
+def admin_create_user(
+    user: schemas.AdminUserCreate,
+    db: Database = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    existing = db.users.find_one({"email": user.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    password = user.password or "ChangeMe@123"
+    hashed_password = auth.get_password_hash(password)
+
+    new_user = models.User(
+        full_name=user.full_name,
+        email=user.email,
+        password_hash=hashed_password,
+        subscription_tier=user.subscription_tier.lower(),
+        available_credits=user.available_credits,
+        role=user.role.lower(),
+    )
+    user_dict = new_user.model_dump()
+    db.users.insert_one(user_dict)
+    return user_dict
+
 @app.post("/login")
 def login(email: str = Form(...), password: str = Form(...), db: Database = Depends(get_db)):
     user = db.users.find_one({"email": email, "status": True})
     if not user or not auth.verify_password(password, user.get("password_hash")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    
+
+    # Update last login
+    db.users.update_one({"_id": user["_id"]}, {"$set": {"last_login_at": datetime.now(IST)}})
+
+    token = auth.create_access_token({
+        "sub": user.get("email"),
+        "role": user.get("role", "user"),
+        "guid": user.get("guid"),
+    })
+
     return {
         "status": "success",
         "message": "Login successful",
+        "access_token": token,
+        "token_type": "bearer",
         "user": {
             "guid": user.get("guid"),
             "full_name": user.get("full_name"),
             "email": user.get("email"),
+            "role": user.get("role", "user"),
             "subscription_tier": user.get("subscription_tier", "basic"),
             "available_credits": user.get("available_credits", 2)
         }
@@ -99,6 +176,23 @@ def login(email: str = Form(...), password: str = Form(...), db: Database = Depe
 @app.post("/logout")
 def logout():
     return {"status": "success", "message": "Logged out successfully"}
+
+
+
+
+@app.get("/auth/me")
+def auth_me(user=Depends(get_current_user)):
+    return {
+        "status": "success",
+        "user": {
+            "guid": user.get("guid"),
+            "full_name": user.get("full_name"),
+            "email": user.get("email"),
+            "role": user.get("role", "user"),
+            "subscription_tier": user.get("subscription_tier", "basic"),
+            "available_credits": user.get("available_credits", 0),
+        },
+    }
 
 @app.get("/user/credits")
 def get_user_credits(email: str, db: Database = Depends(get_db)):
@@ -128,8 +222,8 @@ async def draft_script(
 @app.post("/generate")
 async def generate_video(
     topic: str = Form(...),
-    image: UploadFile = File(...),
-    script: str = Form(...),
+    image: UploadFile | None = File(None),
+    script: str = Form(""),
     voice: str = Form("en-US-AndrewNeural"),
     language: str = Form("English"),
     speed: int = Form(0),
@@ -146,14 +240,14 @@ async def generate_video(
     caption_style: str = Form("default"),
     # New parameters for multi-format
     generate_all_formats: str = Form("false"),
-    # New parameters for auto-dubbing
-    dub_languages: str = Form(""),  # Comma-separated list of languages
     user_email: str = Form(...),    # User who pays for this
+    use_tts: str = Form("true"),
+    use_image: str = Form("true"),
     db: Database = Depends(get_db)
 ):
     """
     Step 2: Pro pipeline with full customization.
-    Now supports auto-captions, multi-format, and auto-dubbing.
+    Now supports auto-captions and multi-format.
     """
     # 0. Credit Check & Deduction
     # This happens BEFORE we start the expensive generation
@@ -162,28 +256,31 @@ async def generate_video(
 
     print(f"--- Starting Advanced Video Generation ({engine}) ---")
     
-    # 1. Save Image
-    ext = os.path.splitext(image.filename)[1] or ".jpg"
-    image_filename = f"avatar_{uuid.uuid4().hex}{ext}"
-    image_path = os.path.join(temp_dir, image_filename)
-    with open(image_path, "wb") as buffer:
-        buffer.write(await image.read())
-    
-    image_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{image_filename}"
+    # 1. Save Image (optional)
+    image_path = None
+    image_url = None
+    if use_image == "true" and image is not None:
+        ext = os.path.splitext(image.filename)[1] or ".jpg"
+        image_filename = f"avatar_{uuid.uuid4().hex}{ext}"
+        image_path = os.path.join(temp_dir, image_filename)
+        with open(image_path, "wb") as buffer:
+            buffer.write(await image.read())
+        image_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{image_filename}"
 
-    # 2. TTS with custom settings
-    print(f"Generating audio with voice: {voice}...")
-    audio_filename = f"video_audio_{int(time.time())}.mp3"
-    try:
-        audio_path = await generate_audio(script, audio_filename, voice=voice, speed=speed, pitch=pitch)
-    except Exception as e:
-        print(f"ERROR: Audio Generation Failed: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "message": f"Audio service timeout (TTS). Please check your internet connection or try a different voice."}
-        )
-    
-    audio_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{audio_filename}"
+    # 2. Optional TTS with custom settings
+    audio_url = None
+    if use_tts == "true" and script:
+        print(f"Generating audio with voice: {voice}...")
+        audio_filename = f"video_audio_{int(time.time())}.mp3"
+        try:
+            audio_path = await generate_audio(script, audio_filename, voice=voice, speed=speed, pitch=pitch)
+            audio_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{audio_filename}"
+        except Exception as e:
+            print(f"ERROR: Audio Generation Failed: {e}")
+            return JSONResponse(
+                status_code=500,
+                content={"status": "error", "message": f"Audio service timeout (TTS). Please check your internet connection or try a different voice."}
+            )
 
     # 3. Generation Logic (Gemini Only)
     print(f"Creating cinematic video with Gemini Veo ({veo_quality})...")
@@ -192,7 +289,8 @@ async def generate_video(
     
     # Humanization Step: Transform script into a visual-first prompt
     print(f"DEBUG: Enhancing visual prompt for humanization...")
-    visual_prompt = generate_visual_prompt(script, topic)
+    prompt_for_visual = script or topic
+    visual_prompt = generate_visual_prompt(prompt_for_visual, topic)
     print(f"DEBUG: Using Visual Prompt: {visual_prompt[:100]}...")
 
     try:
@@ -262,27 +360,6 @@ async def generate_video(
         except Exception as e:
             print(f"WARNING: Multi-format generation failed (non-fatal): {e}")
     
-    # 6. Auto-Dubbing
-    dub_results = []
-    if dub_languages:
-        languages_list = [lang.strip() for lang in dub_languages.split(",") if lang.strip()]
-        if languages_list:
-            print(f"Auto-dubbing to: {', '.join(languages_list)}...")
-            try:
-                dub_results = await translation_service.auto_dub(
-                    script, language, languages_list,
-                    speed=speed, pitch=pitch
-                )
-                # Convert audio paths to URLs
-                for dub in dub_results:
-                    if dub.get("audio_filename"):
-                        dub["audio_url"] = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{dub['audio_filename']}"
-
-                    # Remove file system paths from response
-                    dub.pop("audio_path", None)
-                print(f"Auto-dubbing complete for {len(dub_results)} language(s)")
-            except Exception as e:
-                print(f"WARNING: Auto-dubbing failed (non-fatal): {e}")
 
     # === USAGE TRACKING ===
     video_duration_actual = 0
@@ -312,11 +389,10 @@ async def generate_video(
         video_file_size_bytes=video_file_size,
         script_input_tokens=0,
         script_output_tokens=0,
-        tts_characters=len(script),
+        tts_characters=len(script) if use_tts == "true" else 0,
         captions_enabled=(captions_enabled == "true"),
         caption_style=caption_style if captions_enabled == "true" else "",
         formats_generated=list(format_urls.keys()),
-        dub_languages=[lang.strip() for lang in dub_languages.split(",") if lang.strip()],
         video_model=video_model_used,
         user_email=user_email
     )
@@ -334,9 +410,6 @@ async def generate_video(
     # Add optional data
     if format_urls:
         response_data["format_urls"] = format_urls
-    
-    if dub_results:
-        response_data["dub_results"] = dub_results
     
     if captioned_video_url:
         response_data["captioned_video_url"] = captioned_video_url
@@ -400,48 +473,6 @@ async def translate_script_endpoint(
         return JSONResponse(
             status_code=500,
             content={"status": "error", "message": f"Translation failed: {str(e)}"}
-        )
-
-
-@app.post("/auto-dub")
-async def auto_dub_endpoint(
-    script: str = Form(...),
-    source_language: str = Form("English"),
-    target_languages: str = Form(...),  # Comma-separated
-    speed: int = Form(0),
-    pitch: int = Form(0)
-):
-    """Auto-translate and generate dubbed audio for multiple languages."""
-    langs = [l.strip() for l in target_languages.split(",") if l.strip()]
-    if not langs:
-        return JSONResponse(
-            status_code=400,
-            content={"status": "error", "message": "No target languages provided."}
-        )
-
-    print(f"Auto-dubbing from {source_language} to: {', '.join(langs)}...")
-    try:
-        results = await translation_service.auto_dub(
-            script, source_language, langs,
-            speed=speed, pitch=pitch
-        )
-
-        for dub in results:
-            if dub.get("audio_path"):
-                dub["audio_url"] = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{dub['audio_filename']}"
-            dub.pop("audio_path", None)
-
-        return {
-            "status": "success",
-            "data": {
-                "source_language": source_language,
-                "dubs": results
-            }
-        }
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "message": f"Auto-dubbing failed: {str(e)}"}
         )
 
 
@@ -561,7 +592,7 @@ async def generate_all_formats_endpoint(
 # ========================
 
 @app.get("/admin/usage-summary")
-async def get_usage_summary(db: Database = Depends(get_db)):
+async def get_usage_summary(db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Get high-level usage metrics for admin dashboard."""
     return {
         "status": "success",
@@ -569,7 +600,7 @@ async def get_usage_summary(db: Database = Depends(get_db)):
     }
 
 @app.get("/admin/daily-stats")
-async def get_daily_stats(db: Database = Depends(get_db)):
+async def get_daily_stats(db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Get usage statistics for the current day."""
     return {
         "status": "success",
@@ -577,7 +608,7 @@ async def get_daily_stats(db: Database = Depends(get_db)):
     }
 
 @app.post("/admin/reset-stats")
-async def reset_stats(db: Database = Depends(get_db)):
+async def reset_stats(db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Reset all usage statistics (Admin only)."""
     db.stats.delete_one({"type": "overall_usage"})
     db.generations.delete_many({})
@@ -585,7 +616,7 @@ async def reset_stats(db: Database = Depends(get_db)):
 
 
 @app.get("/admin/users")
-async def get_admin_users(db: Database = Depends(get_db)):
+async def get_admin_users(db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Get list of users for admin panel from real database."""
     users = list(db.users.find({"status": True}))
     user_list = []
@@ -606,7 +637,7 @@ async def get_admin_users(db: Database = Depends(get_db)):
 
 
 @app.put("/admin/users/{user_id}")
-async def update_admin_user(user_id: str, user_update: schemas.UserUpdate, db: Database = Depends(get_db)):
+async def update_admin_user(user_id: str, user_update: schemas.UserUpdate, db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Update user details as an admin."""
     # Assuming user_id passed from frontend is the guid or id string
     db_user = db.users.find_one({"$or": [{"guid": user_id}, {"id": user_id}], "status": True})
@@ -624,7 +655,7 @@ async def update_admin_user(user_id: str, user_update: schemas.UserUpdate, db: D
 
 
 @app.delete("/admin/users/{user_id}")
-async def delete_admin_user(user_id: str, db: Database = Depends(get_db)):
+async def delete_admin_user(user_id: str, db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Soft delete a user as an admin (set status to False)."""
     db_user = db.users.find_one({"$or": [{"guid": user_id}, {"id": user_id}], "status": True})
     if not db_user:
@@ -635,7 +666,7 @@ async def delete_admin_user(user_id: str, db: Database = Depends(get_db)):
 
 
 @app.get("/admin/stats")
-async def get_admin_stats(db: Database = Depends(get_db)):
+async def get_admin_stats(db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Get high-level system metrics."""
     total_users = db.users.count_documents({"status": True})
     usage = usage_service.get_summary(db)
@@ -670,13 +701,14 @@ async def get_admin_stats(db: Database = Depends(get_db)):
 
 
 @app.get("/admin/top-users")
-async def get_admin_top_users(db: Database = Depends(get_db)):
+async def get_admin_top_users(db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Get the top users by total transaction cost and query count."""
     gens = list(db.generations.find())
     
     user_stats = {}
     for gen in gens:
-        email = gen.get("user_email", "Unknown")
+        # usage_service logs email in "user"
+        email = gen.get("user") or gen.get("user_email") or "Unknown"
         cost = gen.get("cost", {}).get("total_usd", 0.0)
         
         if email not in user_stats:
@@ -695,7 +727,7 @@ async def get_admin_top_users(db: Database = Depends(get_db)):
         
         user_stats[email]["queries"] += 1
         user_stats[email]["total_cost_usd"] += cost
-        user_stats[email]["total_cost_inr"] += cost * 83.0
+        user_stats[email]["total_cost_inr"] += cost * USD_TO_INR
 
     # Convert to list and sort by queries (descending)
     sorted_users = sorted(user_stats.values(), key=lambda x: x["queries"], reverse=True)
@@ -709,27 +741,28 @@ async def get_admin_top_users(db: Database = Depends(get_db)):
     }
 
 @app.get("/admin/analytics/weekly")
-async def get_weekly_analytics(db: Database = Depends(get_db)):
-    """Mock weekly analytics for dashboard charts."""
-    # In a real app, you would aggregate by day for the last 7 days
-    gens = list(db.generations.find().sort("timestamp", -1).limit(100))
-    # Simplify for demo: just showing the counts
-    return {
-        "status": "success",
-        "data": [
-            {"day": "Mon", "value": 12},
-            {"day": "Tue", "value": 19},
-            {"day": "Wed", "value": 15},
-            {"day": "Thu", "value": 22},
-            {"day": "Fri", "value": 30},
-            {"day": "Sat", "value": len(gens) // 2},
-            {"day": "Sun", "value": len(gens)}
-        ]
-    }
+async def get_weekly_analytics(db: Database = Depends(get_db), _admin=Depends(require_admin)):
+    """Weekly analytics for dashboard charts (last 7 days)."""
+    end = datetime.now(IST)
+    start = end - timedelta(days=6)
+
+    pipeline = [
+        {"$match": {"timestamp": {"$gte": start, "$lte": end}}},
+        {"$group": {"_id": "$date", "value": {"$sum": 1}}},
+    ]
+    grouped = {d["_id"]: d["value"] for d in db.generations.aggregate(pipeline)}
+
+    data = []
+    for i in range(6, -1, -1):
+        day_dt = end - timedelta(days=i)
+        date_str = day_dt.strftime("%d %b %Y")
+        data.append({"day": day_dt.strftime("%a"), "value": int(grouped.get(date_str, 0))})
+
+    return {"status": "success", "data": data}
 
 
 @app.get("/admin/analytics/models")
-async def get_model_distribution(db: Database = Depends(get_db)):
+async def get_model_distribution(db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Calculate distribution of used models."""
     model_stats = usage_service.get_model_usage(db)
     total_queries = sum(m["queries"] for m in model_stats) or 1
@@ -741,13 +774,14 @@ async def get_model_distribution(db: Database = Depends(get_db)):
                 "name": m["name"], 
                 "value": round((m["queries"] / total_queries) * 100),
                 "queries": m["queries"],
-                "revenue": m["revenue"]
+                "revenue": m["revenue"],
+                "revenue_inr": m.get("revenue_inr", round((m.get("revenue") or 0) * USD_TO_INR, 2))
             } for m in model_stats
         ]
     }
 
 @app.get("/admin/pricing")
-async def get_pricing():
+async def get_pricing(_admin=Depends(require_admin)):
     """Get dynamic pricing for all models."""
     from services.usage_service import PRICING
     return {
@@ -756,8 +790,54 @@ async def get_pricing():
     }
 
 
+@app.get("/admin/active-model")
+async def get_active_model(db: Database = Depends(get_db), _admin=Depends(require_admin)):
+    doc = db.stats.find_one({"type": "active_model"}) or {}
+    model_id = doc.get("model_id", "gemini-2.5-flash")
+    return {"status": "success", "data": {"model_id": model_id}}
+
+
+@app.put("/admin/active-model")
+async def set_active_model(
+    model_id: str = Form(...),
+    db: Database = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    db.stats.update_one(
+        {"type": "active_model"},
+        {"$set": {"model_id": model_id, "updated_at": datetime.now(IST)}},
+        upsert=True,
+    )
+    return {"status": "success", "data": {"model_id": model_id}}
+
+
+@app.get("/admin/service-keys")
+async def get_service_keys(_admin=Depends(require_admin)):
+    """Return whether critical service keys are configured (not the raw secrets)."""
+    has_google = bool(os.getenv("GOOGLE_API_KEY"))
+    return {"status": "success", "data": {"google_configured": has_google}}
+
+
+@app.put("/admin/service-keys")
+async def update_service_keys(
+    google_api_key: str = Form(...),
+    _admin=Depends(require_admin),
+):
+    """Update the Google Gemini API key in the .env file."""
+    env_path = find_dotenv()
+    if not env_path:
+        env_path = os.path.join(os.path.dirname(__file__), ".env")
+    try:
+        set_key(env_path, "GOOGLE_API_KEY", google_api_key)
+        # Also update current process env so it's picked up immediately
+        os.environ["GOOGLE_API_KEY"] = google_api_key
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update key: {e}" )
+
+
 @app.get("/admin/analytics/usage")
-async def get_detailed_usage(db: Database = Depends(get_db)):
+async def get_detailed_usage(db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Detailed category breakdown."""
     gens = list(db.generations.find().limit(100))
     
@@ -779,7 +859,7 @@ async def get_detailed_usage(db: Database = Depends(get_db)):
 
 
 @app.get("/admin/transactions")
-async def get_admin_transactions(db: Database = Depends(get_db)):
+async def get_admin_transactions(db: Database = Depends(get_db), _admin=Depends(require_admin)):
     """Fetch transaction history."""
     txs = list(db.transactions.find().sort("created_at", -1))
     

@@ -7,7 +7,7 @@ import {
     Download, ChevronRight, DollarSign, Lock, Database,
     Twitter, Linkedin, Github, Instagram, Bell
 } from 'lucide-react';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, getAuthHeaders } from './config';
 import './AdminPanel.css';
 import './AdminAIModel.css';
 
@@ -106,6 +106,14 @@ const AdminPanel = ({ navigate }) => {
     // Toast State
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
+    // Search / filters
+    const [userSearch, setUserSearch] = useState('');
+    const [logSearch, setLogSearch] = useState('');
+
+    // Service keys
+    const [googleKeyConfigured, setGoogleKeyConfigured] = useState(false);
+    const [newGoogleKey, setNewGoogleKey] = useState('');
+
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
@@ -122,7 +130,8 @@ const AdminPanel = ({ navigate }) => {
                     fetchTransactions(),
                     fetchSystemStats(),
                     fetchTopAiUsers(),
-                    fetchPricing()
+                    fetchPricing(),
+                    fetchActiveModel()
                 ]);
             } catch (err) {
                 console.error("Data loading error:", err);
@@ -132,11 +141,36 @@ const AdminPanel = ({ navigate }) => {
         loadAllData();
     }, []);
 
+    const fetchActiveModel = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/admin/active-model`, {
+                headers: { ...getAuthHeaders() }
+            });
+            const data = await res.json();
+            if (data.status === 'success' && data.data?.model_id) {
+                const id = data.data.model_id;
+                const found = dynamicModels.find(m => m.id === id);
+                if (found) setActiveModel(found);
+                else setActiveModel(prev => ({ ...prev, id }));
+            }
+            // Also refresh service-key status
+            const keysRes = await fetch(`${API_BASE_URL}/admin/service-keys`, {
+                headers: { ...getAuthHeaders() }
+            });
+            const keysData = await keysRes.json();
+            if (keysData.status === 'success') {
+                setGoogleKeyConfigured(Boolean(keysData.data?.google_configured));
+            }
+        } catch (e) {
+            console.error('Failed to fetch active model:', e);
+        }
+    };
+
     const fetchAnalytics = async () => {
         try {
             const [weeklyRes, modelRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/admin/analytics/weekly`),
-                fetch(`${API_BASE_URL}/admin/analytics/models`)
+                fetch(`${API_BASE_URL}/admin/analytics/weekly`, { headers: { ...getAuthHeaders() } }),
+                fetch(`${API_BASE_URL}/admin/analytics/models`, { headers: { ...getAuthHeaders() } })
             ]);
             const weekly = await weeklyRes.json();
             const models = await modelRes.json();
@@ -152,7 +186,9 @@ const AdminPanel = ({ navigate }) => {
 
     const fetchPricing = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/pricing`);
+            const response = await fetch(`${API_BASE_URL}/admin/pricing`, {
+                headers: { ...getAuthHeaders() }
+            });
             const data = await response.json();
             if (data.status === 'success') {
                 const backendPricing = data.data;
@@ -161,6 +197,7 @@ const AdminPanel = ({ navigate }) => {
                     if (rates) {
                         return {
                             ...m,
+                            // Backend provides per-1k token pricing; keep units consistent in UI
                             inputPrice: rates.input_per_1k_tokens !== undefined ? `$${rates.input_per_1k_tokens}` : (rates.per_second ? `$${rates.per_second}/s` : 'Free'),
                             outputPrice: rates.output_per_1k_tokens !== undefined ? `$${rates.output_per_1k_tokens}` : 'N/A'
                         };
@@ -202,7 +239,9 @@ const AdminPanel = ({ navigate }) => {
 
     const fetchTopAiUsers = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/top-users`);
+            const response = await fetch(`${API_BASE_URL}/admin/top-users`, {
+                headers: { ...getAuthHeaders() }
+            });
             const data = await response.json();
             if (data.status === 'success') {
                 setTopAiUsers(data.data);
@@ -214,7 +253,9 @@ const AdminPanel = ({ navigate }) => {
 
     const fetchTransactions = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/transactions`);
+            const response = await fetch(`${API_BASE_URL}/admin/transactions`, {
+                headers: { ...getAuthHeaders() }
+            });
             const data = await response.json();
             if (data.status === 'success') {
                 setTransactions(data.data);
@@ -226,7 +267,9 @@ const AdminPanel = ({ navigate }) => {
 
     const fetchSystemStats = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/stats`);
+            const response = await fetch(`${API_BASE_URL}/admin/stats`, {
+                headers: { ...getAuthHeaders() }
+            });
             const data = await response.json();
             if (data.status === 'success') {
                 setSystemStats(data.data);
@@ -238,7 +281,9 @@ const AdminPanel = ({ navigate }) => {
 
     const fetchUsageData = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/usage-summary`);
+            const response = await fetch(`${API_BASE_URL}/admin/usage-summary`, {
+                headers: { ...getAuthHeaders() }
+            });
             const data = await response.json();
             if (data.status === 'success') {
                 setUsageData(data.data);
@@ -250,7 +295,9 @@ const AdminPanel = ({ navigate }) => {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/admin/users`);
+            const response = await fetch(`${API_BASE_URL}/admin/users`, {
+                headers: { ...getAuthHeaders() }
+            });
             const data = await response.json();
             if (data.status === 'success') {
                 setUsers(data.data);
@@ -258,14 +305,8 @@ const AdminPanel = ({ navigate }) => {
                 throw new Error("Failed to fetch users");
             }
         } catch (error) {
-            console.error('Failed to fetch users, using fallbacks:', error);
-            setUsers([
-                { id: 1, name: 'Abhishek Sharma', email: 'abhishek@example.com', tier: 'Pro', status: 'Active', usage: 142, joined: '12 Jan 2026' },
-                { id: 2, name: 'Priya Patel', email: 'priya.p@gmail.com', tier: 'Agency', status: 'Active', usage: 89, joined: '05 Feb 2026' },
-                { id: 3, name: 'Rahul Varma', email: 'rahul.v@outlook.com', tier: 'Basic', status: 'Pending', usage: 12, joined: '01 Mar 2026' },
-                { id: 4, name: 'Sanjana Reddy', email: 'sanj.reddy@yahoo.com', tier: 'Pro', status: 'Suspended', usage: 256, joined: '20 Dec 2025' },
-                { id: 5, name: 'Vikram Singh', email: 'v.singh@company.in', tier: 'Agency', status: 'Active', usage: 45, joined: '15 Feb 2026' },
-            ]);
+            console.error('Failed to fetch users:', error);
+            setUsers([]);
         }
     };
 
@@ -277,7 +318,8 @@ const AdminPanel = ({ navigate }) => {
             email: '',
             subscription_tier: 'Basic',
             available_credits: 50,
-            status: true
+            status: true,
+            role: 'User'
         });
         setShowUserModal(true);
     };
@@ -290,7 +332,8 @@ const AdminPanel = ({ navigate }) => {
             email: user.email,
             subscription_tier: user.tier,
             available_credits: user.usage,
-            status: user.status === 'Active'
+            status: user.status === 'Active',
+            role: user.role || user.tier // fallback
         });
         setShowUserModal(true);
     };
@@ -298,27 +341,29 @@ const AdminPanel = ({ navigate }) => {
     const handleSaveUser = async () => {
         try {
             if (modalMode === 'add') {
-                // For simplicity, using same logic as signup but as admin
-                const response = await fetch(`${API_BASE_URL}/signup`, {
+                const response = await fetch(`${API_BASE_URL}/admin/users`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                     body: JSON.stringify({
                         full_name: modalData.full_name,
                         email: modalData.email,
-                        password: 'defaultPassword123' // Temporary password
+                        subscription_tier: modalData.subscription_tier.toLowerCase(),
+                        available_credits: parseInt(modalData.available_credits),
+                        role: modalData.role?.toLowerCase() || 'user'
                     })
                 });
                 if (!response.ok) throw new Error("Failed to create user");
             } else {
                 const response = await fetch(`${API_BASE_URL}/admin/users/${selectedUser.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                     body: JSON.stringify({
                         full_name: modalData.full_name,
                         email: modalData.email,
                         subscription_tier: modalData.subscription_tier.toLowerCase(),
                         available_credits: parseInt(modalData.available_credits),
-                        status: modalData.status
+                        status: modalData.status,
+                        role: modalData.role?.toLowerCase() || undefined
                     })
                 });
                 if (!response.ok) throw new Error("Failed to update user");
@@ -342,7 +387,8 @@ const AdminPanel = ({ navigate }) => {
 
         try {
             const response = await fetch(`${API_BASE_URL}/admin/users/${userIdToDelete}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { ...getAuthHeaders() }
             });
             if (response.ok) {
                 fetchUsers();
@@ -365,7 +411,9 @@ const AdminPanel = ({ navigate }) => {
         } catch (error) {
             console.error('Logout failed:', error);
         } finally {
-            localStorage.clear();
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('video_history');
             if (navigate) navigate('/login');
             else window.location.href = '/login';
         }
@@ -455,7 +503,12 @@ const AdminPanel = ({ navigate }) => {
                 <div className="admin-header-actions">
                     <div className="search-bar">
                         <Search size={14} />
-                        <input type="text" placeholder="Search logs..." />
+                        <input
+                            type="text"
+                            placeholder="Search logs..."
+                            value={logSearch}
+                            onChange={(e) => setLogSearch(e.target.value)}
+                        />
                     </div>
                     <button className="icon-btn"><Bell size={18} /></button>
                     <button className="primary-btn mini" onClick={handleOpenAddModal}><Plus size={14} /> New User</button>
@@ -468,7 +521,7 @@ const AdminPanel = ({ navigate }) => {
                     <div className="stat-content">
                         <div className="stat-label">Total Users</div>
                         <div className="stat-value">{systemStats.total_users.toLocaleString()}</div>
-                        <div className="stat-delta positive"><TrendingUp size={12} /> +12%</div>
+                        <div className="stat-delta muted">Live</div>
                     </div>
                 </div>
                 <div className="stat-card">
@@ -476,7 +529,7 @@ const AdminPanel = ({ navigate }) => {
                     <div className="stat-content">
                         <div className="stat-label">Videos Generated</div>
                         <div className="stat-value">{systemStats.total_generations.toLocaleString()}</div>
-                        <div className="stat-delta positive"><TrendingUp size={12} /> +5.4%</div>
+                        <div className="stat-delta muted">Live</div>
                     </div>
                 </div>
                 <div className="stat-card">
@@ -484,7 +537,7 @@ const AdminPanel = ({ navigate }) => {
                     <div className="stat-content">
                         <div className="stat-label">System Load</div>
                         <div className="stat-value">{systemStats.system_load}</div>
-                        <div className="stat-delta negative"><TrendingDown size={12} /> -2%</div>
+                        <div className="stat-delta muted">Last 1 hour</div>
                     </div>
                 </div>
                 <div className="stat-card">
@@ -492,7 +545,7 @@ const AdminPanel = ({ navigate }) => {
                     <div className="stat-content">
                         <div className="stat-label">Monthly Revenue</div>
                         <div className="stat-value">{systemStats.revenue_formatted}</div>
-                        <div className="stat-delta positive"><TrendingUp size={12} /> +22.1%</div>
+                        <div className="stat-delta muted">Transactions</div>
                     </div>
                 </div>
             </div>
@@ -552,7 +605,17 @@ const AdminPanel = ({ navigate }) => {
                         <button className="icon-btn"><Download size={16} /></button>
                     </div>
                     <div className="gen-log-list">
-                        {usageData?.recent_generations?.map(gen => (
+                        {usageData?.recent_generations
+                            ?.filter(gen => {
+                                if (!logSearch) return true;
+                                const q = logSearch.toLowerCase();
+                                return (
+                                    gen.topic?.toLowerCase().includes(q) ||
+                                    gen.engine?.toLowerCase().includes(q) ||
+                                    gen.user?.toLowerCase().includes(q)
+                                );
+                            })
+                            .map(gen => (
                             <div key={gen.id} className="gen-log-item">
                                 <div className="gen-type-icon">
                                     {gen.engine === 'gemini' ? <BarChart3 size={14} /> : <Users size={14} />}
@@ -712,8 +775,40 @@ const AdminPanel = ({ navigate }) => {
                     <div className="key-card">
                         <div className="key-label">Google Gemini API</div>
                         <div className="key-input-wrap">
-                            <input type="password" value="••••••••••••••••••••••••••••" readOnly />
-                            <button className="text-btn">Update</button>
+                            <input
+                                type="password"
+                                placeholder={googleKeyConfigured ? "Key configured" : "Paste your Google API key"}
+                                value={newGoogleKey}
+                                onChange={(e) => setNewGoogleKey(e.target.value)}
+                            />
+                            <button
+                                className="text-btn"
+                                onClick={async () => {
+                                    if (!newGoogleKey) return;
+                                    try {
+                                        const fd = new FormData();
+                                        fd.append('google_api_key', newGoogleKey);
+                                        const res = await fetch(`${API_BASE_URL}/admin/service-keys`, {
+                                            method: 'PUT',
+                                            headers: { ...getAuthHeaders() },
+                                            body: fd
+                                        });
+                                        const data = await res.json();
+                                        if (data.status === 'success') {
+                                            setGoogleKeyConfigured(true);
+                                            setNewGoogleKey('');
+                                            showToast('Google API key updated', 'success');
+                                        } else {
+                                            showToast('Failed to update key', 'error');
+                                        }
+                                    } catch (e) {
+                                        console.error(e);
+                                        showToast('Failed to update key', 'error');
+                                    }
+                                }}
+                            >
+                                Update
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -756,12 +851,12 @@ const AdminPanel = ({ navigate }) => {
                         <div className="price-item">
                             <div className="price-label">Input</div>
                             <div className="price-value">{activeModel.inputPrice}</div>
-                            {activeModel.inputPrice !== 'N/A' && <div className="price-sub">/ 1M tokens</div>}
+                            {activeModel.inputPrice !== 'N/A' && !String(activeModel.inputPrice).includes('/s') && <div className="price-sub">/ 1K tokens</div>}
                         </div>
                         <div className="price-item align-right">
                             <div className="price-label">Output</div>
                             <div className="price-value">{activeModel.outputPrice}</div>
-                            {activeModel.outputPrice !== 'N/A' && <div className="price-sub">/ 1M tokens</div>}
+                            {activeModel.outputPrice !== 'N/A' && !String(activeModel.outputPrice).includes('/s') && <div className="price-sub">/ 1K tokens</div>}
                         </div>
                     </div>
                     <div className="pricing-note">
@@ -925,7 +1020,12 @@ const AdminPanel = ({ navigate }) => {
                             <div className="admin-header-actions">
                                 <div className="search-bar">
                                     <Search size={14} />
-                                    <input type="text" placeholder="Search by name/email..." />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name/email..."
+                                        value={userSearch}
+                                        onChange={(e) => setUserSearch(e.target.value)}
+                                    />
                                 </div>
                                 <button className="primary-btn mini" onClick={handleOpenAddModal}>Add New</button>
                             </div>
@@ -945,7 +1045,16 @@ const AdminPanel = ({ navigate }) => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {users.map(u => (
+                                        {users
+                                            .filter(u => {
+                                                if (!userSearch) return true;
+                                                const q = userSearch.toLowerCase();
+                                                return (
+                                                    u.name.toLowerCase().includes(q) ||
+                                                    u.email.toLowerCase().includes(q)
+                                                );
+                                            })
+                                            .map(u => (
                                             <tr key={u.id}>
                                                 <td className="font-mono">#US-{u.id}</td>
                                                 <td>
@@ -1031,6 +1140,18 @@ const AdminPanel = ({ navigate }) => {
                                     />
                                 </div>
                             </div>
+                            <div className="input-row">
+                                <div className="input-field">
+                                    <label>User Role</label>
+                                    <select
+                                        value={modalData.role}
+                                        onChange={(e) => setModalData({ ...modalData, role: e.target.value })}
+                                    >
+                                        <option value="User">User</option>
+                                        <option value="Admin">Admin</option>
+                                    </select>
+                                </div>
+                            </div>
                             {modalMode === 'edit' && (
                                 <div className="setting-item" style={{ marginTop: '1rem', background: 'transparent', padding: 0 }}>
                                     <div className="setting-info">
@@ -1085,9 +1206,29 @@ const AdminPanel = ({ navigate }) => {
                         <div className="modal-footer" style={{ justifyContent: 'center', gap: '1rem' }}>
                             <button className="text-btn" onClick={() => setShowModelModal(false)}>Cancel</button>
                             <button className="primary-btn" style={{ background: '#10b981' }} onClick={() => {
-                                setActiveModel(confirmModel);
-                                setShowModelModal(false);
-                                showToast(`Successfully switched to ${confirmModel.name}`, 'success');
+                                (async () => {
+                                    try {
+                                        const fd = new FormData();
+                                        fd.append('model_id', confirmModel.id);
+                                        const res = await fetch(`${API_BASE_URL}/admin/active-model`, {
+                                            method: 'PUT',
+                                            headers: { ...getAuthHeaders() },
+                                            body: fd,
+                                        });
+                                        const data = await res.json();
+                                        if (data.status === 'success') {
+                                            setActiveModel(confirmModel);
+                                            showToast(`Active model set to ${confirmModel.name}`, 'success');
+                                        } else {
+                                            showToast('Failed to set active model', 'error');
+                                        }
+                                    } catch (e) {
+                                        console.error(e);
+                                        showToast('Failed to set active model', 'error');
+                                    } finally {
+                                        setShowModelModal(false);
+                                    }
+                                })();
                             }}>
                                 Yes, Switch Model
                             </button>
