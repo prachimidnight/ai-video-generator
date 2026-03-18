@@ -860,39 +860,207 @@ async def get_detailed_usage(db: Database = Depends(get_db), _admin=Depends(requ
 
 @app.get("/admin/transactions")
 async def get_admin_transactions(db: Database = Depends(get_db), _admin=Depends(require_admin)):
-    """Fetch transaction history."""
-    txs = list(db.transactions.find().sort("created_at", -1))
-    
-    # Seed if empty for demo
-    if not txs:
-        dummy_txs = [
-            models.Transaction(txn_id="TXN-9021", user_name="Abhishek Sharma", amount="₹14,999", plan="Agency Yearly", status="Completed", method="Razorpay").model_dump(),
-            models.Transaction(txn_id="TXN-9020", user_name="Priya Patel", amount="₹1,499", plan="Pro Monthly", status="Completed", method="UPI").model_dump(),
-            models.Transaction(txn_id="TXN-9019", user_name="Rahul Varma", amount="₹499", plan="Basic Top-up", status="Failed", method="Card").model_dump(),
-            models.Transaction(txn_id="TXN-9018", user_name="Sanjana Reddy", amount="₹1,499", plan="Pro Monthly", status="Processing", method="NetBanking").model_dump(),
-            models.Transaction(txn_id="TXN-9017", user_name="Vikram Singh", amount="₹14,999", plan="Agency Yearly", status="Completed", method="Razorpay").model_dump(),
-        ]
-        db.transactions.insert_many(dummy_txs)
-        txs = list(db.transactions.find().sort("created_at", -1))
+    """Fetch all Razorpay transaction history for admin."""
+    txs = list(db.transactions.find().sort("created_at", -1).limit(200))
 
     result = []
     for tx in txs:
         created_at = tx.get("created_at")
-        date_str = created_at.strftime("%d %b %Y") if hasattr(created_at, "strftime") else str(created_at)
+        date_str = created_at.strftime("%d %b %Y, %I:%M %p") if hasattr(created_at, "strftime") else str(created_at)
         result.append({
             "id": tx.get("txn_id"),
+            "payment_id": tx.get("razorpay_payment_id"),
             "user": tx.get("user_name"),
+            "email": tx.get("user_email"),
             "amount": tx.get("amount"),
             "plan": tx.get("plan"),
+            "credits": tx.get("plan_credits", 0),
             "date": date_str,
             "status": tx.get("status"),
-            "method": tx.get("method")
+            "method": tx.get("method", "Razorpay"),
         })
-        
+
     return {
         "status": "success",
         "data": result
     }
+
+
+# ========================
+# RAZORPAY PAYMENT
+# ========================
+import razorpay
+import hmac
+import hashlib
+
+def get_razorpay_client():
+    key_id = os.getenv("RAZORPAY_KEY_ID")
+    key_secret = os.getenv("RAZORPAY_KEY_SECRET")
+    if not key_id or not key_secret:
+        raise HTTPException(status_code=500, detail="Razorpay keys not configured")
+    return razorpay.Client(auth=(key_id, key_secret))
+
+# Plan definitions — amount in paise (INR × 100)
+PLANS = {
+    "pro": {
+        "name": "Professional",
+        "amount_paise": 249900,   # ₹2,499
+        "amount_display": "₹2,499",
+        "credits": 50,
+    },
+    "agency": {
+        "name": "Agency",
+        "amount_paise": 799900,   # ₹7,999
+        "amount_display": "₹7,999",
+        "credits": 999,
+    },
+}
+
+
+@app.post("/payment/create-order")
+async def create_payment_order(
+    plan_id: str = Form(...),       # "pro" or "agency"
+    user_email: str = Form(...),
+    db: Database = Depends(get_db),
+):
+    """Create a Razorpay order and return order details to frontend."""
+    plan = PLANS.get(plan_id)
+    if not plan:
+        raise HTTPException(status_code=400, detail="Invalid plan")
+
+    client = get_razorpay_client()
+    try:
+        order = client.order.create({
+            "amount": plan["amount_paise"],
+            "currency": "INR",
+            "receipt": f"receipt_{uuid.uuid4().hex[:10]}",
+            "notes": {
+                "plan_id": plan_id,
+                "user_email": user_email,
+            }
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Razorpay order creation failed: {e}")
+
+    # Save a pending transaction in DB
+    user = db.users.find_one({"email": user_email})
+    txn = models.Transaction(
+        txn_id=order["id"],
+        user_id=str(user["_id"]) if user else None,
+        user_name=user.get("full_name", user_email) if user else user_email,
+        user_email=user_email,
+        amount=plan["amount_display"],
+        amount_paise=plan["amount_paise"],
+        plan=plan["name"],
+        plan_credits=plan["credits"],
+        status="Pending",
+        method="Razorpay",
+    )
+    db.transactions.insert_one(txn.model_dump())
+
+    return {
+        "status": "success",
+        "data": {
+            "order_id": order["id"],
+            "amount": plan["amount_paise"],
+            "currency": "INR",
+            "key_id": os.getenv("RAZORPAY_KEY_ID"),
+            "plan_name": plan["name"],
+            "plan_credits": plan["credits"],
+        }
+    }
+
+
+@app.post("/payment/verify")
+async def verify_payment(
+    razorpay_order_id: str = Form(...),
+    razorpay_payment_id: str = Form(...),
+    razorpay_signature: str = Form(...),
+    user_email: str = Form(...),
+    db: Database = Depends(get_db),
+):
+    """Verify Razorpay payment signature, update transaction, award credits."""
+    key_secret = os.getenv("RAZORPAY_KEY_SECRET", "")
+
+    # HMAC-SHA256 signature verification
+    message = f"{razorpay_order_id}|{razorpay_payment_id}"
+    expected_sig = hmac.new(
+        key_secret.encode(),
+        message.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected_sig, razorpay_signature):
+        # Mark transaction as Failed
+        db.transactions.update_one(
+            {"txn_id": razorpay_order_id},
+            {"$set": {"status": "Failed", "updated_at": datetime.now(IST)}}
+        )
+        raise HTTPException(status_code=400, detail="Payment signature verification failed")
+
+    # Mark transaction as Completed
+    txn = db.transactions.find_one({"txn_id": razorpay_order_id})
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    db.transactions.update_one(
+        {"txn_id": razorpay_order_id},
+        {"$set": {
+            "status": "Completed",
+            "razorpay_payment_id": razorpay_payment_id,
+            "razorpay_signature": razorpay_signature,
+            "method": "Razorpay",
+            "updated_at": datetime.now(IST),
+        }}
+    )
+
+    # Award credits to user
+    credits_to_add = txn.get("plan_credits", 0)
+    plan_name = txn.get("plan", "pro").lower()
+    tier = "pro" if "professional" in plan_name.lower() else "agency"
+
+    db.users.update_one(
+        {"email": user_email},
+        {"$inc": {"available_credits": credits_to_add},
+         "$set": {"subscription_tier": tier, "updated_at": datetime.now(IST)}}
+    )
+
+    return {
+        "status": "success",
+        "message": f"Payment verified! {credits_to_add} credits added to your account.",
+        "data": {
+            "payment_id": razorpay_payment_id,
+            "credits_added": credits_to_add,
+        }
+    }
+
+
+@app.get("/payment/history")
+async def get_payment_history(
+    user_email: str,
+    db: Database = Depends(get_db),
+):
+    """Get payment history for a specific user."""
+    txns = list(db.transactions.find(
+        {"user_email": user_email},
+        sort=[("created_at", -1)]
+    ).limit(20))
+
+    result = []
+    for tx in txns:
+        created_at = tx.get("created_at")
+        date_str = created_at.strftime("%d %b %Y, %I:%M %p") if hasattr(created_at, "strftime") else str(created_at)
+        result.append({
+            "order_id": tx.get("txn_id"),
+            "payment_id": tx.get("razorpay_payment_id"),
+            "amount": tx.get("amount"),
+            "plan": tx.get("plan"),
+            "credits": tx.get("plan_credits", 0),
+            "status": tx.get("status"),
+            "date": date_str,
+        })
+
+    return {"status": "success", "data": result}
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """Generate a bcrypt hash of the password."""
-    # Generate a salt and hash the password
+    # Generate a salt and hash the passwor0d
     salt = bcrypt.gensalt()
     password_bytes = password.encode('utf-8')
     hashed_password = bcrypt.hashpw(password_bytes, salt)

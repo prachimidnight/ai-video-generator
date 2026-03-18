@@ -1102,6 +1102,76 @@ const VideoGenerator = ({ navigate }) => {
         </div>
     );
 
+    const [paymentLoading, setPaymentLoading] = useState(null); // plan being paid
+
+    const handleRazorpayPayment = async (planId) => {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) { alert('Please login to upgrade.'); return; }
+        const user = JSON.parse(userStr);
+
+        setPaymentLoading(planId);
+        try {
+            // 1. Create order on backend
+            const fd = new FormData();
+            fd.append('plan_id', planId);
+            fd.append('user_email', user.email);
+            const res = await fetch(`${API_BASE_URL}/payment/create-order`, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.status !== 'success') throw new Error(data.detail || 'Order creation failed');
+            const { order_id, amount, currency, key_id, plan_name, plan_credits } = data.data;
+
+            // 2. Load Razorpay script dynamically
+            await new Promise((resolve, reject) => {
+                if (window.Razorpay) return resolve();
+                const script = document.createElement('script');
+                script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.body.appendChild(script);
+            });
+
+            // 3. Open Razorpay checkout
+            const options = {
+                key: key_id,
+                amount,
+                currency,
+                name: 'Social Stamp',
+                description: `${plan_name} Plan — ${plan_credits} Credits`,
+                order_id,
+                prefill: { name: user.full_name || '', email: user.email },
+                theme: { color: '#00a859' },
+                handler: async (response) => {
+                    // 4. Verify payment on backend
+                    try {
+                        const vfd = new FormData();
+                        vfd.append('razorpay_order_id', response.razorpay_order_id);
+                        vfd.append('razorpay_payment_id', response.razorpay_payment_id);
+                        vfd.append('razorpay_signature', response.razorpay_signature);
+                        vfd.append('user_email', user.email);
+                        const vRes = await fetch(`${API_BASE_URL}/payment/verify`, { method: 'POST', body: vfd });
+                        const vData = await vRes.json();
+                        if (vData.status === 'success') {
+                            alert(`✅ Payment Successful!\n${vData.message}`);
+                            fetchCreditData();
+                            setShowPricingModal(false);
+                        } else {
+                            alert('❌ Payment verification failed. Contact support.');
+                        }
+                    } catch (e) {
+                        alert('Payment verification error. Please contact support.');
+                    }
+                },
+                modal: { ondismiss: () => setPaymentLoading(null) },
+            };
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+        } catch (e) {
+            alert(`Payment failed: ${e.message}`);
+        } finally {
+            setPaymentLoading(null);
+        }
+    };
+
     const renderPricingModal = () => {
         if (!showPricingModal) return null;
 
@@ -1137,14 +1207,15 @@ const VideoGenerator = ({ navigate }) => {
                                 <li><Check size={16} /> 1080p Full HD</li>
                                 <li><Check size={16} /> All Premium Voices</li>
                                 <li><Check size={16} /> Advanced Captions</li>
-                                <li><Check size={16} /> Auto-Dubbing</li>
                                 <li><Check size={16} /> Priority Support</li>
                             </ul>
-                            <button className="plan-btn primary" onClick={() => {
-                                setSubscriptionTier('pro');
-                                setCredits({ remaining: 50, limit: 50 });
-                                setShowPricingModal(false);
-                            }}>Upgrade Now</button>
+                            <button
+                                className="plan-btn primary"
+                                disabled={paymentLoading === 'pro'}
+                                onClick={() => handleRazorpayPayment('pro')}
+                            >
+                                {paymentLoading === 'pro' ? '⏳ Processing...' : '💳 Pay ₹2,499'}
+                            </button>
                         </div>
 
                         <div className="pricing-card">
@@ -1158,11 +1229,13 @@ const VideoGenerator = ({ navigate }) => {
                                 <li><Check size={16} /> White-label Output</li>
                                 <li><Check size={16} /> 24/7 Dedicated Support</li>
                             </ul>
-                            <button className="plan-btn" onClick={() => {
-                                setSubscriptionTier('enterprise');
-                                setCredits({ remaining: 9999, limit: 9999 });
-                                setShowPricingModal(false);
-                            }}>Contact Sales</button>
+                            <button
+                                className="plan-btn"
+                                disabled={paymentLoading === 'agency'}
+                                onClick={() => handleRazorpayPayment('agency')}
+                            >
+                                {paymentLoading === 'agency' ? '⏳ Processing...' : '💳 Pay ₹7,999'}
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -636,65 +636,133 @@ const AdminPanel = ({ navigate }) => {
         </div>
     );
 
+    const [txnFilter, setTxnFilter] = useState('All');
 
-    const renderTransactions = () => (
-        <div className="admin-view animate-fade">
-            <header className="admin-header">
-                <div>
-                    <h1>Transactions & Billing</h1>
-                    <p>Track payments, subscriptions, and revenue flow.</p>
-                </div>
-            </header>
+    const renderTransactions = () => {
+        const filtered = txnFilter === 'All'
+            ? transactions
+            : transactions.filter(t => t.status === txnFilter);
 
-            <div className="admin-section full">
-                <div className="section-header">
-                    <h3>Recent Transactions</h3>
-                    <div className="filter-group">
-                        <button className="filter-chip active">All</button>
-                        <button className="filter-chip">Completed</button>
-                        <button className="filter-chip">Pending</button>
+        const completedRevenue = transactions
+            .filter(t => t.status === 'Completed')
+            .reduce((acc, t) => {
+                const raw = (t.amount || '').replace(/[₹,]/g, '');
+                return acc + (parseInt(raw) || 0);
+            }, 0);
+
+        return (
+            <div className="admin-view animate-fade">
+                <header className="admin-header">
+                    <div>
+                        <h1>Transactions &amp; Billing</h1>
+                        <p>Real-time Razorpay payment records — verified &amp; stored.</p>
+                    </div>
+                </header>
+
+                {/* Revenue Summary */}
+                <div className="admin-stats-grid" style={{ marginBottom: '1.5rem' }}>
+                    <div className="stat-card">
+                        <div className="stat-icon-wrap green"><CreditCard size={20} /></div>
+                        <div className="stat-content">
+                            <div className="stat-label">Total Revenue</div>
+                            <div className="stat-value">₹{completedRevenue.toLocaleString('en-IN')}</div>
+                            <div className="stat-delta muted">Completed only</div>
+                        </div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-icon-wrap blue"><Activity size={20} /></div>
+                        <div className="stat-content">
+                            <div className="stat-label">Total Transactions</div>
+                            <div className="stat-value">{transactions.length}</div>
+                            <div className="stat-delta muted">All statuses</div>
+                        </div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-icon-wrap orange"><CheckCircle2 size={20} /></div>
+                        <div className="stat-content">
+                            <div className="stat-label">Completed</div>
+                            <div className="stat-value">{transactions.filter(t => t.status === 'Completed').length}</div>
+                            <div className="stat-delta muted">Verified payments</div>
+                        </div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-icon-wrap purple"><Clock size={20} /></div>
+                        <div className="stat-content">
+                            <div className="stat-label">Pending / Failed</div>
+                            <div className="stat-value">{transactions.filter(t => t.status !== 'Completed').length}</div>
+                            <div className="stat-delta muted">Needs attention</div>
+                        </div>
                     </div>
                 </div>
-                <div className="modern-table-wrap">
-                    <table className="modern-table">
-                        <thead>
-                            <tr>
-                                <th>Transaction ID</th>
-                                <th>User</th>
-                                <th>Amount</th>
-                                <th>Plan</th>
-                                <th>Date</th>
-                                <th>Method</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {transactions.map(txn => (
-                                <tr key={txn.id}>
-                                    <td className="font-mono text-xs">{txn.id}</td>
-                                    <td>
-                                        <div className="user-name font-semibold">{txn.user}</div>
-                                    </td>
-                                    <td className="font-bold text-success">{txn.amount}</td>
-                                    <td><span className={`plan-badge ${txn.plan.split(' ')[0].toLowerCase()}`}>{txn.plan}</span></td>
-                                    <td>{txn.date}</td>
-                                    <td>{txn.method}</td>
-                                    <td>
-                                        <span className={`status-pill ${txn.status.toLowerCase()}`}>
-                                            {txn.status === 'Completed' && <CheckCircle2 size={12} />}
-                                            {txn.status === 'Processing' && <Clock size={12} />}
-                                            {txn.status === 'Failed' && <AlertCircle size={12} />}
-                                            {txn.status}
-                                        </span>
-                                    </td>
-                                </tr>
+
+                <div className="admin-section full">
+                    <div className="section-header">
+                        <h3>Payment Ledger</h3>
+                        <div className="filter-group">
+                            {['All', 'Completed', 'Pending', 'Failed'].map(f => (
+                                <button
+                                    key={f}
+                                    className={`filter-chip ${txnFilter === f ? 'active' : ''}`}
+                                    onClick={() => setTxnFilter(f)}
+                                >{f}</button>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
+                    <div className="modern-table-wrap">
+                        <table className="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Payment ID</th>
+                                    <th>User</th>
+                                    <th>Amount</th>
+                                    <th>Plan</th>
+                                    <th>Credits</th>
+                                    <th>Date</th>
+                                    <th>Method</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.length === 0 ? (
+                                    <tr><td colSpan={9} style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>No transactions found</td></tr>
+                                ) : filtered.map(txn => (
+                                    <tr key={txn.id}>
+                                        <td className="font-mono text-xs" title={txn.id}>{(txn.id || '').slice(0, 16)}…</td>
+                                        <td className="font-mono text-xs" title={txn.payment_id}>
+                                            {txn.payment_id ? <span style={{ color: '#10b981' }}>{txn.payment_id.slice(0, 14)}…</span> : <span style={{ color: '#666' }}>—</span>}
+                                        </td>
+                                        <td>
+                                            <div className="user-name font-semibold">{txn.user}</div>
+                                            {txn.email && <div style={{ fontSize: '0.7rem', color: '#888' }}>{txn.email}</div>}
+                                        </td>
+                                        <td className="font-bold text-success">{txn.amount}</td>
+                                        <td><span className={`plan-badge ${(txn.plan || '').split(' ')[0].toLowerCase()}`}>{txn.plan}</span></td>
+                                        <td>
+                                            {txn.credits > 0
+                                                ? <span style={{ fontWeight: 700, color: '#00a859' }}>+{txn.credits}</span>
+                                                : <span style={{ color: '#666' }}>—</span>
+                                            }
+                                        </td>
+                                        <td style={{ fontSize: '0.78rem' }}>{txn.date}</td>
+                                        <td>{txn.method}</td>
+                                        <td>
+                                            <span className={`status-pill ${(txn.status || '').toLowerCase()}`}>
+                                                {txn.status === 'Completed' && <CheckCircle2 size={12} />}
+                                                {txn.status === 'Pending' && <Clock size={12} />}
+                                                {txn.status === 'Failed' && <AlertCircle size={12} />}
+                                                {txn.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderSettings = () => (
         <div className="admin-view animate-fade">

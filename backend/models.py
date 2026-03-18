@@ -21,11 +21,17 @@ class User(BaseModel):
 
 class Transaction(BaseModel):
     id: Optional[str] = None
-    txn_id: str
+    txn_id: str                         # Razorpay order_id
+    razorpay_payment_id: Optional[str] = None  # Razorpay payment_id after capture
+    razorpay_signature: Optional[str] = None   # HMAC signature for verification
     user_id: Optional[str] = None
     user_name: str
-    amount: str
+    user_email: Optional[str] = None
+    amount: str                         # formatted e.g. "₹2,499"
+    amount_paise: int = 0               # raw Razorpay amount in paise
     plan: str
-    status: str
-    method: str
+    plan_credits: int = 0               # credits to award on success
+    status: str                         # Pending / Completed / Failed
+    method: str = "Razorpay"            # payment method
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
