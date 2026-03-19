@@ -5,7 +5,7 @@
 export const getApiUrl = () => {
     // 1. STRICTLY prioritize VITE_API_URL if it's set in Cloudflare
     if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'undefined') {
-        return import.meta.env.VITE_API_URL;
+        return import.meta.env.VITE_API_URL.replace(/\/$/, "");
     }
 
     // 2. Identify environment
