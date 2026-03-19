@@ -103,7 +103,7 @@ def convert_format(
     target_w = config["width"]
     target_h = config["height"]
 
-    output_filename = f"format_{target_ratio.replace(':', 'x')}_{uuid.uuid4().hex[:8]}.mp4"
+    output_filename = f"social_stamp_format_{target_ratio.replace(':', 'x')}_{uuid.uuid4().hex[:8]}.mp4"
     output_path = os.path.join(TEMP_DIR, output_filename)
 
     try:

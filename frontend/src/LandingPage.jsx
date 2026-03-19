@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlayCircle, Wand2, Download, ArrowRight, Video, Mic, Sparkles, LayoutDashboard } from 'lucide-react';
+import { PlayCircle, Wand2, Download, ArrowRight, Video, Mic, Sparkles, LayoutDashboard, Languages, ShieldCheck, Lock } from 'lucide-react';
 import './LandingPage.css';
 
 const LandingPage = ({ navigate }) => {
@@ -45,7 +45,7 @@ const LandingPage = ({ navigate }) => {
                         Transform Ideas into <span className="text-gradient">Stunning Videos</span> in Seconds
                     </h1>
                     <p className="hero-subtitle">
-                        Harness the power of AI to generate high-quality scenes, voiceovers, and dynamic visuals from just a simple text prompt.
+                        Create <strong>talking character videos</strong> with lifelike voiceovers in <strong>any language</strong> — plus cinematic shots, subtitles, and export-ready formats from a single prompt.
                     </p>
                     <div className="hero-cta">
                         <button className="primary-btn-large group" onClick={() => navigate('/app')}>
@@ -79,8 +79,8 @@ const LandingPage = ({ navigate }) => {
             {/* Features / How it works Section */}
             <section className="features-section">
                 <div className="section-header">
-                    <h2>How It Works</h2>
-                    <p>Create professional videos in three simple steps</p>
+                    <h2>Built for talking characters</h2>
+                    <p>Your specialty: generate a character that speaks your script in any language — fast, clean, and shareable.</p>
                 </div>
 
                 <div className="features-grid">
@@ -88,24 +88,24 @@ const LandingPage = ({ navigate }) => {
                         <div className="feature-icon-wrapper i-purple">
                             <Wand2 />
                         </div>
-                        <h3>1. Input Your Idea</h3>
-                        <p>Type a prompt, a script, or an article. Our AI understands your vision and plans the entire video structure.</p>
+                        <h3>1. Write a prompt or script</h3>
+                        <p>Start with a topic, paste a script, or draft one with AI — then generate a cinematic talking character video.</p>
                     </div>
 
                     <div className="feature-card">
                         <div className="feature-icon-wrapper i-blue">
-                            <Mic />
+                            <Languages />
                         </div>
-                        <h3>2. Let AI Generate</h3>
-                        <p>The system automatically creates ultra-realistic voiceovers, vivid imagery, and engaging cinematic transitions.</p>
+                        <h3>2. Choose language & voice</h3>
+                        <p>Create voiceovers in multiple languages with natural pacing — perfect for global content and regional campaigns.</p>
                     </div>
 
                     <div className="feature-card">
                         <div className="feature-icon-wrapper i-green">
                             <Download />
                         </div>
-                        <h3>3. Export & Share</h3>
-                        <p>Review your masterpiece on the timeline, make tweaks if needed, and download your HD video instantly.</p>
+                        <h3>3. Export for every platform</h3>
+                        <p>Download MP4 and convert to 16:9 or 9:16 — ready for YouTube, Reels, TikTok, Shorts, and ads.</p>
                     </div>
                 </div>
             </section>
@@ -118,22 +118,22 @@ const LandingPage = ({ navigate }) => {
                         <li>
                             <Video className="li-icon" />
                             <div>
-                                <h4>Multi-Scene Generation</h4>
-                                <p>Generate seamless videos with multiple dynamic scenes.</p>
+                                <h4>Cinematic talking videos</h4>
+                                <p>Create character-led videos that feel studio-produced — perfect for explainers, promos, and brand content.</p>
                             </div>
                         </li>
                         <li>
                             <Mic className="li-icon" />
                             <div>
-                                <h4>Lifelike Voiceovers</h4>
-                                <p>Choose from dozens of ultra-realistic AI voices.</p>
+                                <h4>Multi-language voiceovers</h4>
+                                <p>Generate voiceovers in many languages with natural tone and pacing.</p>
                             </div>
                         </li>
                         <li>
                             <Sparkles className="li-icon" />
                             <div>
-                                <h4>Cinematic Effects</h4>
-                                <p>High-end transitions and automated animations.</p>
+                                <h4>Captions, formats, post tools</h4>
+                                <p>Add subtitles, convert aspect ratios, and ship content faster — without manual editing.</p>
                             </div>
                         </li>
                     </ul>
@@ -142,6 +142,37 @@ const LandingPage = ({ navigate }) => {
                     <div className="floating-card c1">Scene 1 Generated...</div>
                     <div className="floating-card c2">Applying Voiceover...</div>
                     <div className="floating-card c3">Rendering Final Video</div>
+                </div>
+            </section>
+
+            {/* Trust / Privacy Section */}
+            <section className="features-section" style={{ marginTop: '4rem' }}>
+                <div className="section-header">
+                    <h2>Privacy-first by design</h2>
+                    <p>Built with traceability for security, and controls to protect user data.</p>
+                </div>
+                <div className="features-grid">
+                    <div className="feature-card">
+                        <div className="feature-icon-wrapper i-purple">
+                            <ShieldCheck />
+                        </div>
+                        <h3>Audit metadata (server-side)</h3>
+                        <p>Each generated video gets a private audit record (who/when/settings), stored securely on the server for admins.</p>
+                    </div>
+                    <div className="feature-card">
+                        <div className="feature-icon-wrapper i-blue">
+                            <Lock />
+                        </div>
+                        <h3>Admin-only access</h3>
+                        <p>Audit records are not publicly downloadable and can be fetched only through protected admin endpoints.</p>
+                    </div>
+                    <div className="feature-card">
+                        <div className="feature-icon-wrapper i-green">
+                            <Sparkles />
+                        </div>
+                        <h3>Optional file metadata</h3>
+                        <p>We can embed a privacy-safe summary into the MP4 container metadata (hashed user ID, engine, settings).</p>
+                    </div>
                 </div>
             </section>
 
@@ -155,6 +186,13 @@ const LandingPage = ({ navigate }) => {
 
             {/* Main Footer */}
             <footer className="landing-footer">
+                <div className="lp-footer-links">
+                    <button className="text-btn" onClick={() => navigate('/privacy-policy')}>Privacy Policy</button>
+                    <span className="lp-footer-sep">•</span>
+                    <button className="text-btn" onClick={() => navigate('/disclaimer')}>Disclaimer</button>
+                    <span className="lp-footer-sep">•</span>
+                    <button className="text-btn" onClick={() => navigate('/terms-and-conditions')}>Terms and Conditions</button>
+                </div>
                 <p>POWERED BY <span className="text-gradient font-bold">RUNR</span></p>
             </footer>
         </div>

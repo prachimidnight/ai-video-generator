@@ -347,7 +347,7 @@ class GeminiVideoService:
                         download_url = f"{google_video_url}&key={self.api_key}"
 
                         print(f"DEBUG: Downloading video from Google...")
-                        local_filename = f"gemini_video_{uuid.uuid4().hex}.mp4"
+                        local_filename = f"social_stamp_{uuid.uuid4().hex}.mp4"
                         local_path = os.path.join(self.temp_dir, local_filename)
 
                         response = requests.get(download_url)

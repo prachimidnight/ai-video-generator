@@ -424,7 +424,7 @@ async def generate_video(
                     "use_tts": (use_tts == "true"),
                     "use_image": (use_image == "true"),
                 }
-                tagged_filename = f"tagged_{uuid.uuid4().hex[:8]}.mp4"
+                tagged_filename = f"social_stamp_tagged_{uuid.uuid4().hex[:8]}.mp4"
                 tagged_path = os.path.join(temp_dir, tagged_filename)
                 ok = video_metadata_service.embed_public_summary_into_mp4(
                     input_video_path=local_video_path,

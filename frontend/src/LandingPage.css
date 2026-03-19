@@ -693,6 +693,19 @@
     backdrop-filter: blur(10px);
 }
 
+.lp-footer-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.lp-footer-sep {
+    color: rgba(255, 255, 255, 0.25);
+}
+
 .landing-footer p {
     margin: 0;
     display: flex;

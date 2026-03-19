@@ -5,6 +5,9 @@ import AdminPanel from './AdminPanel';
 import LandingPage from './LandingPage';
 import LoginPage from './LoginPage';
 import SignupPage from './SignupPage';
+import PrivacyPolicy from './PrivacyPolicy';
+import Disclaimer from './Disclaimer';
+import TermsAndConditions from './TermsAndConditions';
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -69,6 +72,12 @@ function App() {
     switch (currentPath) {
       case '/':
         return <LandingPage navigate={navigate} />;
+      case '/privacy-policy':
+        return <PrivacyPolicy navigate={navigate} />;
+      case '/disclaimer':
+        return <Disclaimer navigate={navigate} />;
+      case '/terms-and-conditions':
+        return <TermsAndConditions navigate={navigate} />;
       case '/login':
         return <LoginPage navigate={navigate} />;
       case '/signup':

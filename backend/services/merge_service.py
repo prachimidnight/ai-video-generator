@@ -31,7 +31,7 @@ class MergeService:
 
     async def merge_audio_video(self, video_path: str, audio_path: str) -> str:
         """Merges audio and video, looping the video if it is shorter than the audio."""
-        output_filename = f"merged_{uuid.uuid4().hex[:8]}.mp4"
+        output_filename = f"social_stamp_merged_{uuid.uuid4().hex[:8]}.mp4"
         output_path = os.path.join(self.temp_dir, output_filename)
         
         try:

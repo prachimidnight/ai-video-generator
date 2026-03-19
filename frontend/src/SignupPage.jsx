@@ -123,6 +123,9 @@ const SignupPage = ({ navigate }) => {
                             {loading ? 'Creating Account...' : 'Sign Up'}
                             <ArrowRight className="btn-icon" size={20} />
                         </button>
+                        <p className="signup-agreement">
+                            By signing up, you agree to our <span className="clickable-link" onClick={() => navigate('/terms-and-conditions')}>Terms & Conditions</span> and <span className="clickable-link" onClick={() => navigate('/privacy-policy')}>Privacy Policy</span>.
+                        </p>
                     </form>
 
 
