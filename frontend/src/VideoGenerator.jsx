@@ -37,7 +37,8 @@ import {
     Activity,
     LogOut,
     Cpu,
-    Mic
+    Mic,
+    Menu
 } from 'lucide-react';
 import { API_BASE_URL } from './config';
 import './VideoGenerator.css';
@@ -200,6 +201,9 @@ const CustomSelect = ({ value, onChange, options, icon: Icon }) => {
 };
 
 const VideoGenerator = ({ navigate }) => {
+    // Mobile sidebar state
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
     // Pipeline State
     const [step, setStep] = useState(1);
     const [topic, setTopic] = useState('');
@@ -1246,25 +1250,34 @@ const VideoGenerator = ({ navigate }) => {
     return (
         <div className="studio-app">
             {renderPricingModal()}
-            <aside className="sidebar">
+
+            {/* Mobile sidebar overlay */}
+            {sidebarOpen && (
+                <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+            )}
+
+            <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
                 <div className="sidebar-brand">
                     <img src="/logo.png" alt="Logo" className="brand-logo" />
                     <div className="brand-text">
                         <span className="brand-title-top">SOCIAL</span>
                         <span className="brand-title-bottom">STAMP</span>
                     </div>
+                    <button className="sidebar-close-btn" onClick={() => setSidebarOpen(false)}>
+                        <X size={18} />
+                    </button>
                 </div>
 
                 <div className="nav-menu">
                     <div
                         className={`nav-item ${activeModule === 'studio' ? 'active' : ''}`}
-                        onClick={() => setActiveModule('studio')}
+                        onClick={() => { setActiveModule('studio'); setSidebarOpen(false); }}
                     >
                         <Monitor size={16} /> Content Studio
                     </div>
                     <div
                         className="nav-item subscription-btn"
-                        onClick={() => setShowPricingModal(true)}
+                        onClick={() => { setShowPricingModal(true); setSidebarOpen(false); }}
                     >
                         <Zap size={16} color="#fbbf24" fill="#fbbf24" /> Upgrade to Pro
                     </div>
@@ -1304,18 +1317,23 @@ const VideoGenerator = ({ navigate }) => {
 
             <main className="main-content">
                 <header className="top-header">
-                    <div className="header-breadcrumbs">
-                        <span>SOCIAL STAMP</span> /
-                        <span>{activeModule === 'studio' ? 'Content Studio' : 'Dashboard'}</span>
+                    <div className="header-left">
+                        <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>
+                            <Menu size={22} />
+                        </button>
+                        <div className="header-breadcrumbs">
+                            <span>SOCIAL STAMP</span> /
+                            <span>{activeModule === 'studio' ? 'Content Studio' : 'Dashboard'}</span>
+                        </div>
                     </div>
                     <div className="header-actions">
                         <div className="api-badge">
                             <div className="pulse-dot"></div>
-                            API Active
+                            <span className="api-badge-text">API Active</span>
                         </div>
                         <button className="logout-btn" onClick={handleLogout} title="Logout">
                             <LogOut size={18} />
-                            <span>Logout</span>
+                            <span className="logout-text">Logout</span>
                         </button>
                     </div>
                 </header>

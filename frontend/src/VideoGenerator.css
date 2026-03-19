@@ -21,7 +21,7 @@
   background: var(--studio-bg);
   color: var(--text-main);
   font-family: 'Inter', system-ui, sans-serif;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 /* Sidebar Styling */
@@ -1413,41 +1413,323 @@ input[type="range"] {
   padding: 2rem 1rem;
 }
 
-/* Responsive */
+/* ======================== */
+/* MOBILE NAVIGATION         */
+/* ======================== */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.mobile-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.sidebar-close-btn:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 199;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ======================== */
+/* RESPONSIVE BREAKPOINTS    */
+/* ======================== */
 @media (max-width: 1024px) {
   .studio-layout {
     grid-template-columns: 1fr;
   }
 
   .format-export-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pricing-grid {
     grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .pricing-card.featured {
+    transform: scale(1);
+  }
+
+  .cost-summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
   }
 }
 
 @media (max-width: 768px) {
-  .sidebar {
-    display: none;
+  /* Show hamburger, hide sidebar by default */
+  .mobile-menu-btn {
+    display: flex;
   }
 
+  .sidebar-close-btn {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  /* Sidebar slides in from left on mobile */
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 30px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+    width: min(280px, 85vw);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-brand {
+    padding: 1.25rem 1.25rem;
+  }
+
+  /* Grids become single column */
   .grid-3,
   .grid-2 {
     grid-template-columns: 1fr;
   }
 
-  .wizard-container {
+  .format-export-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Content area padding */
+  .content-area {
     padding: 1.5rem 1rem;
   }
 
+  .top-header {
+    padding: 0 1rem;
+    height: 60px;
+  }
+
+  .header-breadcrumbs {
+    font-size: 0.75rem;
+  }
+
+  .header-breadcrumbs span:first-child {
+    display: none;
+  }
+
+  /* Hide API badge text, keep dot only on small screens */
+  .api-badge {
+    padding: 0.4rem 0.65rem;
+  }
+
+  .api-badge-text {
+    display: none;
+  }
+
+  .logout-text {
+    display: none;
+  }
+
+  .logout-btn {
+    padding: 0.5rem 0.65rem;
+  }
+
+  /* Section header */
   .section-header h2 {
     font-size: 1.75rem;
   }
 
+  .section-header p {
+    font-size: 1rem;
+  }
+
+  /* Caption styles */
   .caption-styles {
     grid-template-columns: 1fr;
   }
 
   .format-preview-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Wizard progress */
+  .wizard-progress {
+    margin-bottom: 2rem;
+  }
+
+  /* Studio layout sidebar always stacks below main */
+  .studio-layout {
     grid-template-columns: 1fr;
+  }
+
+  /* Video actions stacked */
+  .video-actions {
+    flex-direction: column;
+    padding: 1.25rem;
+  }
+
+  .download-cta {
+    flex: none;
+    width: 100%;
+  }
+
+  /* Pricing modal */
+  .pricing-modal {
+    padding: 1.75rem 1.25rem;
+    border-radius: 20px;
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .pricing-header h2 {
+    font-size: 1.75rem;
+  }
+
+  .pricing-card.featured {
+    transform: scale(1);
+  }
+
+  .plan-price {
+    font-size: 2rem;
+  }
+
+  /* Cost summary */
+  .cost-summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  /* Engine toggle */
+  .engine-toggle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Quality toggle */
+  .quality-toggle {
+    grid-template-columns: 1fr;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    padding: 2rem 1rem;
+  }
+
+  /* App footer */
+  .app-footer {
+    padding: 1rem;
+    font-size: 0.7rem;
+  }
+
+  /* Post tool */
+  .post-tools-section {
+    margin-top: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .section-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .content-area {
+    padding: 1rem 0.75rem;
+  }
+
+  .wizard-progress {
+    gap: 0;
+    max-width: 280px;
+  }
+
+  .progress-step {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+  }
+
+  .primary-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.95rem;
+  }
+
+  .generate-final-btn {
+    font-size: 1rem;
+    padding: 1rem;
+  }
+
+  .format-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cost-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-overlay {
+    padding: 0.75rem;
+  }
+
+  .success-banner h2 {
+    font-size: 1.25rem;
+  }
+
+  .bg-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .character-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .voice-download-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
 }
 
@@ -1842,6 +2124,8 @@ input[type="range"] {
   flex-direction: column;
   background: var(--studio-bg);
   overflow-y: auto;
+  min-width: 0;
+  min-height: 0;
 }
 
 .top-header {
@@ -2340,5 +2624,6 @@ input[type="range"] {
   margin-left: 0.4rem;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }

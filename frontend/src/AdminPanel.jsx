@@ -5,7 +5,7 @@ import {
     AlertCircle, X, Zap, Globe, Cpu, Video, CreditCard,
     TrendingUp, TrendingDown, Clock, Activity, Shield,
     Download, ChevronRight, DollarSign, Lock, Database,
-    Twitter, Linkedin, Github, Instagram, Bell
+    Twitter, Linkedin, Github, Instagram, Bell, Menu
 } from 'lucide-react';
 import { API_BASE_URL, getAuthHeaders } from './config';
 import './AdminPanel.css';
@@ -66,6 +66,7 @@ const AI_MODELS = [
 
 const AdminPanel = ({ navigate }) => {
     const [view, setView] = useState('dashboard');
+    const [adminSidebarOpen, setAdminSidebarOpen] = useState(false);
     const [usageData, setUsageData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
@@ -420,7 +421,7 @@ const AdminPanel = ({ navigate }) => {
     };
 
     const renderSidebar = () => (
-        <aside className="admin-sidebar">
+        <aside className={`admin-sidebar ${adminSidebarOpen ? 'admin-sidebar-open' : ''}`}>
             <div className="admin-brand">
                 <div className="admin-logo">
                     <img src="/logo.png" alt="Logo" className="logo-img" />
@@ -429,36 +430,39 @@ const AdminPanel = ({ navigate }) => {
                     <span className="brand-primary">Social</span>
                     <span className="brand-secondary">Stamp</span>
                 </div>
+                <button className="admin-sidebar-close" onClick={() => setAdminSidebarOpen(false)}>
+                    <X size={18} />
+                </button>
             </div>
 
             <nav className="admin-nav">
                 <button
                     className={`admin-nav-item ${view === 'dashboard' ? 'active' : ''}`}
-                    onClick={() => setView('dashboard')}
+                    onClick={() => { setView('dashboard'); setAdminSidebarOpen(false); }}
                 >
                     <LayoutDashboard size={18} /> Dashboard
                 </button>
                 <button
                     className={`admin-nav-item ${view === 'users' ? 'active' : ''}`}
-                    onClick={() => setView('users')}
+                    onClick={() => { setView('users'); setAdminSidebarOpen(false); }}
                 >
                     <Users size={18} /> User Management
                 </button>
                 <button
                     className={`admin-nav-item ${view === 'ai_models' ? 'active' : ''}`}
-                    onClick={() => setView('ai_models')}
+                    onClick={() => { setView('ai_models'); setAdminSidebarOpen(false); }}
                 >
                     <Cpu size={18} /> AI Models
                 </button>
                 <button
                     className={`admin-nav-item ${view === 'credits' ? 'active' : ''}`}
-                    onClick={() => setView('credits')}
+                    onClick={() => { setView('credits'); setAdminSidebarOpen(false); }}
                 >
                     <DollarSign size={18} /> Transactions
                 </button>
                 <button
                     className={`admin-nav-item ${view === 'settings' ? 'active' : ''}`}
-                    onClick={() => setView('settings')}
+                    onClick={() => { setView('settings'); setAdminSidebarOpen(false); }}
                 >
                     <Settings size={18} /> System Settings
                 </button>
@@ -1073,10 +1077,26 @@ const AdminPanel = ({ navigate }) => {
         </div>
     );
 
+
     return (
         <div className="admin-layout">
+            {/* Mobile top bar */}
+            <div className="admin-mobile-bar">
+                <button className="admin-hamburger" onClick={() => setAdminSidebarOpen(true)}>
+                    <Menu size={22} />
+                </button>
+                <span className="brand-primary">Social Stamp Admin</span>
+                <div style={{ width: 38 }} />
+            </div>
+
+            {/* Sidebar overlay */}
+            {adminSidebarOpen && (
+                <div className="admin-sidebar-overlay" onClick={() => setAdminSidebarOpen(false)} />
+            )}
+
             {renderSidebar()}
             <main className="admin-content">
+
                 {view === 'dashboard' && renderDashboard()}
                 {view === 'users' && (
                     <div className="admin-view animate-fade">
