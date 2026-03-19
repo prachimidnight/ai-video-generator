@@ -12,9 +12,11 @@ from services.gemini_service import generate_script, generate_visual_prompt
 from services.tts_service import generate_audio
 from services.gemini_video_service import gemini_video_service
 from services.caption_service import add_captions_to_video, generate_srt, save_srt_file, get_video_duration
-from services.format_service import convert_single_format, convert_to_all_formats
+from services.format_service import convert_single_format, convert_to_all_formats, get_video_info, FORMAT_CONFIGS, convert_format
 from services.translation_service import translation_service
 from services.usage_service import usage_service
+from services.merge_service import merge_service
+from services.video_metadata_service import video_metadata_service
 import time
 from pymongo.database import Database
 from fastapi import Depends
@@ -265,6 +267,7 @@ async def generate_video(
 
     # 2. Optional TTS with custom settings
     audio_url = None
+    audio_path = None
     if use_tts == "true" and script:
         print(f"Generating audio with voice: {voice}...")
         audio_filename = f"video_audio_{int(time.time())}.mp3"
@@ -283,10 +286,15 @@ async def generate_video(
     # Ensure duration is within Veo 3.1 bounds (4-8s)
     target_duration = min(duration, 8) if duration >= 4 else 6
     
-    # Humanization Step: Transform script into a visual-first prompt
+    # Humanization Step: Transform script/topic into a visual-first prompt
     print(f"DEBUG: Enhancing visual prompt for humanization...")
     prompt_for_visual = script or topic
-    visual_prompt = generate_visual_prompt(prompt_for_visual, topic)
+    visual_prompt = generate_visual_prompt(
+        prompt_for_visual,
+        topic,
+        use_image=(use_image == "true"),
+        use_tts=(use_tts == "true"),
+    )
     print(f"DEBUG: Using Visual Prompt: {visual_prompt[:100]}...")
 
     try:
@@ -321,6 +329,24 @@ async def generate_video(
             "message": f"{engine.upper()} generation failed. Please check your credits/API key."
         }
     
+    # 3.5 Enforce aspect ratio if Veo ignores it
+    try:
+        if local_video_path and os.path.exists(local_video_path) and aspect_ratio in FORMAT_CONFIGS:
+            info = get_video_info(local_video_path)
+            w, h = info.get("width"), info.get("height")
+            if w and h:
+                actual = round(w / h, 4)
+                requested = round(FORMAT_CONFIGS[aspect_ratio]["ratio"], 4)
+                # Allow small drift; if off, post-convert to requested ratio.
+                if abs(actual - requested) > 0.02:
+                    print(f"WARNING: Veo output ratio mismatch ({w}x{h}). Converting to {aspect_ratio}...")
+                    converted_filename = convert_format(local_video_path, aspect_ratio, mode="fit")
+                    if converted_filename:
+                        local_video_path = os.path.join(temp_dir, converted_filename)
+                        video_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{converted_filename}"
+    except Exception as e:
+        print(f"WARNING: Aspect ratio enforcement skipped: {e}")
+
     # === POST-PROCESSING PIPELINE ===
     
     # 4. Auto Captions
@@ -356,6 +382,60 @@ async def generate_video(
         except Exception as e:
             print(f"WARNING: Multi-format generation failed (non-fatal): {e}")
     
+    # 6. Merge TTS audio into the final video (if enabled)
+    if use_tts == "true" and audio_path and local_video_path and os.path.exists(local_video_path) and os.path.exists(audio_path):
+        try:
+            print("Merging TTS audio into video...")
+            merged_filename = await merge_service.merge_audio_video(local_video_path, audio_path)
+            if merged_filename:
+                local_video_path = os.path.join(temp_dir, merged_filename)
+                video_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{merged_filename}"
+        except Exception as e:
+            print(f"WARNING: Audio merge failed (non-fatal): {e}")
+
+    # 7. Private metadata record + optional MP4 metadata embed (privacy-safe)
+    try:
+        if local_video_path and os.path.exists(local_video_path):
+            record = video_metadata_service.build_record(
+                video_filename=os.path.basename(local_video_path),
+                user_email=user_email,
+                topic=topic,
+                engine=engine,
+                veo_quality=veo_quality,
+                duration_requested=duration,
+                aspect_ratio_requested=aspect_ratio,
+                use_tts=(use_tts == "true"),
+                use_image=(use_image == "true"),
+                captions_enabled=(captions_enabled == "true"),
+                caption_style=caption_style,
+                formats_generated=list(format_urls.keys()),
+                voice=voice if use_tts == "true" else "",
+            )
+            video_metadata_service.write_private_json(record)
+
+            embed = os.getenv("EMBED_VIDEO_METADATA", "true").lower() == "true"
+            if embed:
+                public_summary = {
+                    "tool": "ai-video-generator",
+                    "created_at_utc": record.get("created_at_utc"),
+                    "user_id_hash": record.get("user_id_hash"),
+                    "engine": engine,
+                    "aspect_ratio": aspect_ratio,
+                    "use_tts": (use_tts == "true"),
+                    "use_image": (use_image == "true"),
+                }
+                tagged_filename = f"tagged_{uuid.uuid4().hex[:8]}.mp4"
+                tagged_path = os.path.join(temp_dir, tagged_filename)
+                ok = video_metadata_service.embed_public_summary_into_mp4(
+                    input_video_path=local_video_path,
+                    output_video_path=tagged_path,
+                    public_summary=public_summary,
+                )
+                if ok:
+                    local_video_path = tagged_path
+                    video_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{tagged_filename}"
+    except Exception as e:
+        print(f"WARNING: Metadata step failed (non-fatal): {e}")
 
     # === USAGE TRACKING ===
     video_duration_actual = 0
@@ -880,6 +960,36 @@ async def get_admin_transactions(db: Database = Depends(get_db), _admin=Depends(
         "status": "success",
         "data": result
     }
+
+@app.get("/admin/video-metadata")
+async def admin_get_video_metadata(
+    video_filename: str,
+    _admin=Depends(require_admin),
+):
+    """
+    Admin-only: fetch private generation metadata for a video filename.
+    The metadata file is stored server-side in backend/private_metadata and is NOT publicly exposed.
+    """
+    try:
+        record = video_metadata_service.read_private_json(video_filename)
+        return {"status": "success", "data": record}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Metadata not found for that filename")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read metadata: {e}")
+
+
+@app.get("/admin/video-metadata/recent")
+async def admin_list_recent_video_metadata(
+    limit: int = 50,
+    _admin=Depends(require_admin),
+):
+    """Admin-only: list recent metadata records (most recent first)."""
+    try:
+        records = video_metadata_service.list_recent_private_json(limit=limit)
+        return {"status": "success", "data": records}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list metadata: {e}")
 
 
 # ========================

@@ -82,7 +82,7 @@ class GeminiService:
                     )
                     return f"Hey everyone! Today we're diving into {topic}. It's honestly one of the most interesting things happening right now, and I can't wait to share some fresh insights with you. Stay tuned!", 10, 20
 
-    def generate_visual_prompt(self, script: str, topic: str):
+    def generate_visual_prompt(self, script: str, topic: str, *, use_image: bool = True, use_tts: bool = True):
         """
         Transforms a spoken script into a high-quality visual description for video generation.
         """
@@ -95,22 +95,48 @@ class GeminiService:
                 metadata={"topic": topic[:100]}
             )
 
+            identity_rules = ""
+            if use_image:
+                identity_rules = """
+            Identity Rules (CRITICAL):
+            - Use the provided reference face image as the ONLY person shown.
+            - Keep the same identity (face, age, skin details) consistently across the entire clip.
+            - Do NOT introduce additional people, characters, or faces in the background.
+            """
+
+            if use_tts:
+                action_block = f"""
+            Character Action:
+            - The person should be speaking the script clearly and naturally.
+            - Strong, believable lip-sync aligned to speech.
+            - Authentic micro-movements (blinks, subtle head/shoulder shifts), realistic skin texture.
+
+            Script to be spoken (for mouth movement): {script}
+                """
+            else:
+                action_block = f"""
+            Character Action:
+            - No speaking, no lip-sync, no on-screen text.
+            - Pure cinematic visuals that communicate the topic through scenes, camera motion, and lighting.
+            - If a person is shown, keep it subtle and avoid dialogue-like mouth movements.
+
+            Topic to visualize: {topic}
+                """
+
             prompt_text = f"""
-            Analyze this video script and topic, then write a highly detailed VISUAL PROMPT for an AI video generator (like Gemini Veo).
-            
+            Write a single highly-detailed VISUAL PROMPT for an AI video generator (Gemini Veo style).
+
             Topic: {topic}
-            Script to be spoken: {script}
-            
+            {identity_rules}
             Visual Direction Guidelines:
-            - Character Action: The person in the video should be speaking the script provided above CLEARLY. 
-            - Lip-Sync: Focus on vivid, natural lip-syncing movements that match the spoken words of the script. 
-            - Style: Photorealistic, cinematic, and professional.
-            - Quality: 4K resolution, sharp details, cinematic lighting (studio-lit or office setting).
-            - Humanization: Focus on authentic human expressions, natural micro-movements (blinking, head tilting), and lifelike skin textures.
-            - Composition: Medium close-up or medium shot to show the face and shoulders clearly.
-            - Atmosphere: High-end production value, shallow depth of field (bokeh background).
-            
-            The goal is to create a video where the character appears to be genuinely speaking the script. 
+            - Style: Photorealistic, cinematic, professional.
+            - Lighting: cinematic lighting, high-end look.
+            - Composition: clean framing, shallow depth of field, premium production value.
+            - Camera: gentle cinematic motion (dolly, slider, handheld subtle), no shaky cam.
+            - Restrictions: no watermarks, no captions, no text overlays, no logos.
+
+            {action_block}
+
             Output ONLY the visual description paragraph.
             """
 
@@ -144,7 +170,9 @@ class GeminiService:
                         return visual_prompt
 
                     generation.update(output="Fallback prompt used")
-                    return f"A professional presenter speaking the script: '{script}' in a cinematic corporate studio with professional setup."
+                    if use_tts:
+                        return f"A single professional presenter speaking the script: '{script}' in a cinematic corporate studio, photorealistic, high-end lighting, shallow depth of field."
+                    return f"Cinematic photorealistic visuals that communicate the topic '{topic}', premium lighting, smooth camera motion, no text overlays."
 
                 except Exception as e:
                     print(f"DEBUG: Visual prompt generation failed: {e}")
@@ -153,7 +181,9 @@ class GeminiService:
                         level="ERROR",
                         status_message=str(e)
                     )
-                    return f"Cinematic high-quality video of a professional person speaking the script: {script}."
+                    if use_tts:
+                        return f"Cinematic high-quality video of a single professional person speaking the script: {script}."
+                    return f"Cinematic high-quality visuals that communicate the topic: {topic}."
 
     def detect_gender(self, image_path: str):
         """
@@ -215,5 +245,5 @@ def generate_script(topic, language="English", duration=15, model_name="gemini-2
 def detect_gender(path):
     return _service.detect_gender(path)
 
-def generate_visual_prompt(script, topic):
-    return _service.generate_visual_prompt(script, topic)
+def generate_visual_prompt(script, topic, use_image: bool = True, use_tts: bool = True):
+    return _service.generate_visual_prompt(script, topic, use_image=use_image, use_tts=use_tts)
