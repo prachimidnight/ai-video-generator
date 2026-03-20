@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-03-20T06:46:15.605761+00:00",
+  "video_filename": "social_stamp_merged_9d33c359.mp4",
+  "user_id_hash": "ec6985558ae5c96eeeb839b0b0bede1793c736c1a5c09fb27f8c6299c5c148b5",
+  "inputs": {
+    "topic": "यदि आप अपनी V2V शीट पहले से बनाकर रखते हैं, तो सामने वाला सदस्य भी आपकी प्रोफाइल देखकर आपके लिए संभावित रेफरेंस और कनेक्शन पहले से खोज सकता है। इससे मीटिंग अधिक प्रभावी और परिणामदायक बनती है।\r\n",
+    "engine": "gemini",
+    "veo_quality": "fast",
+    "duration_requested": 15,
+    "aspect_ratio_requested": "16:9",
+    "use_tts": true,
+    "use_image": true,
+    "script_model": null,
+    "voice": "hi-IN-MadhurNeural"
+  },
+  "post_processing": {
+    "captions_enabled": false,
+    "caption_style": "",
+    "formats_generated": []
+  }
+}

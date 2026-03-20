@@ -41,26 +41,6 @@ const AI_MODELS = [
         estCostText: "$0.002-0.008",
         monthlyEst: "$0.01 / $100",
         tags: [{ icon: Zap, text: "Fast Inference" }, { icon: Globe, text: "Function Calling" }]
-    },
-    {
-        id: "veo-3.1-fast-generate-preview",
-        name: "Veo Fast Generate",
-        provider: "Google",
-        inputPrice: "N/A",
-        outputPrice: "N/A",
-        estCostText: "Free (Preview)",
-        monthlyEst: "$0.00 / $100",
-        tags: [{ icon: Video, text: "Draft Videos" }, { icon: Zap, text: "Fast Generation" }]
-    },
-    {
-        id: "veo-3.1-generate-preview",
-        name: "Veo High Quality",
-        provider: "Google",
-        inputPrice: "N/A",
-        outputPrice: "N/A",
-        estCostText: "Premium Cost",
-        monthlyEst: "$1.50 / $100",
-        tags: [{ icon: Video, text: "1080p/4K" }, { icon: CheckCircle2, text: "Cinematic" }]
     }
 ];
 
@@ -469,18 +449,7 @@ const AdminPanel = ({ navigate }) => {
             </nav>
 
             <div className="admin-sidebar-footer">
-                <div className="social-stamp">
-                    <p>Connect with us</p>
-                    <div className="social-icons">
-                        <Twitter size={16} />
-                        <Linkedin size={16} />
-                        <Github size={16} />
-                        <Instagram size={16} />
-                    </div>
-                </div>
-                <button className="back-to-app" onClick={() => navigate ? navigate('/') : window.location.href = '/'}>
-                    <ArrowLeft size={16} /> Back to Studio
-                </button>
+
                 <button className="admin-logout-btn" onClick={handleLogout}>
                     <LogOut size={16} /> Logout
                 </button>
@@ -627,7 +596,7 @@ const AdminPanel = ({ navigate }) => {
                                 <div className="gen-details">
                                     <div className="gen-topic">{gen.topic}</div>
                                     <div className="gen-meta">
-                                        {gen.engine} • {gen.duration_requested}s • {gen.time}
+                                        <strong>{gen.user || 'Unknown User'}</strong> • {gen.engine} • {gen.duration_requested}s • {gen.time}
                                     </div>
                                 </div>
                                 <div className="gen-cost">₹{gen.cost?.total_inr}</div>
@@ -936,20 +905,7 @@ const AdminPanel = ({ navigate }) => {
                     </div>
                 </div>
 
-                <div className="admin-section">
-                    <div className="card-top-row">
-                        <div className="card-title"><Activity size={16} /> Monthly Budget</div>
-                        <button className="icon-btn-small"><Edit size={14} /></button>
-                    </div>
-                    <div className="budget-stats">
-                        <div className="budget-amounts">${activeModel.revenue?.toFixed(2) || '0.00'} / $100</div>
-                        <div className="budget-inr">₹{(activeModel.revenue_inr || (activeModel.revenue * 85))?.toFixed(2)} spent</div>
-                        <div className="budget-pct">{Math.min(100, ((activeModel.revenue || 0) / 100 * 100)).toFixed(1)}% used</div>
-                    </div>
-                    <div className="budget-progress-bg">
-                        <div className="budget-progress-fill" style={{ width: `${Math.min(100, ((activeModel.revenue || 0) / 100 * 100))}%` }}></div>
-                    </div>
-                </div>
+
             </div>
 
             <div className="admin-stats-grid ai-stats-row">
@@ -1285,8 +1241,8 @@ const AdminPanel = ({ navigate }) => {
                             <button className="close-btn" onClick={() => setShowModelModal(false)}><X size={18} /></button>
                         </div>
                         <div className="modal-body confirm-body">
-                            <Cpu size={48} className="confirm-icon" style={{ color: '#10b981', margin: '0 auto 1rem', display: 'block' }} />
-                            <h4 style={{ textAlign: 'center', marginBottom: '1rem' }}>Can you switch the model?</h4>
+                            <Cpu size={28} className="confirm-icon" style={{ color: '#10b981', display: 'block', margin: '0 auto' }} />
+                            <h4 style={{ textAlign: 'center', marginBottom: '0.25rem' }}>Can you switch the model?</h4>
                             <p style={{ textAlign: 'center', color: 'var(--admin-text-dim)' }}>
                                 You are about to switch the global AI generation model to <strong style={{ color: 'var(--admin-text)' }}>{confirmModel.name}</strong>. Traffic routing and cost estimations will be updated immediately.
                             </p>

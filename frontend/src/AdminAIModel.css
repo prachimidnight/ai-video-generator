@@ -1,7 +1,7 @@
 /* --- AI Models Panel Styles (Light Theme) --- */
 .ai-models-grid-top {
     display: grid;
-    grid-template-columns: 2fr 1.5fr 1.5fr;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
 }
@@ -192,7 +192,7 @@
 
 /* AI Stats Row (Light) */
 .ai-stats-row {
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
 }
 
 .ai-stat-card {

@@ -154,21 +154,7 @@
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.back-to-app {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 0.75rem;
-}
+
 
 .admin-logout-btn {
     display: flex;
@@ -1122,7 +1108,15 @@
     border-radius: 10px;
     font-size: 0.95rem;
     outline: none;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
+    background: #f8fafc;
+    color: var(--admin-text);
+}
+
+.input-field input:focus,
+.input-field select:focus {
+    border-color: var(--admin-primary);
+    background: white;
 }
 
 .input-row {
@@ -1160,34 +1154,41 @@
 }
 
 .confirm-modal {
-    max-width: 380px;
+    max-width: 320px;
     text-align: center;
 }
 
 .confirm-body {
-    padding: 2rem 1.5rem;
+    padding: 0.5rem 1.25rem 1rem;
 }
 
 .confirm-icon {
-    filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.2));
-    margin-bottom: 1rem !important;
+    filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.15));
+    margin-bottom: 0.5rem !important;
+}
+
+.confirm-modal .modal-header {
+    padding: 1.25rem 1.25rem 0.5rem;
+    border-bottom: none;
 }
 
 .confirm-modal .modal-footer {
     padding: 1.25rem;
-    background: #f8fafc;
-    border-top: 1px solid var(--admin-border);
+    background: transparent;
+    border-top: none;
+    justify-content: center;
+    gap: 0.75rem;
 }
 
 .confirm-modal h4 {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 800;
     color: var(--admin-text);
     margin-bottom: 0.5rem;
 }
 
 .confirm-modal p {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     line-height: 1.5;
     color: var(--admin-text-dim);
 }
