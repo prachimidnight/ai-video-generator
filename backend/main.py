@@ -263,7 +263,7 @@ async def generate_video(
         image_path = os.path.join(temp_dir, image_filename)
         with open(image_path, "wb") as buffer:
             buffer.write(await image.read())
-        image_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{image_filename}"
+        image_url = f"/temp/{image_filename}"
 
     # 2. Optional TTS with custom settings
     audio_url = None
@@ -273,7 +273,7 @@ async def generate_video(
         audio_filename = f"video_audio_{int(time.time())}.mp3"
         try:
             audio_path = await generate_audio(script, audio_filename, voice=voice, speed=speed, pitch=pitch)
-            audio_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{audio_filename}"
+            audio_url = f"/temp/{audio_filename}"
         except Exception as e:
             print(f"ERROR: Audio Generation Failed: {e}")
             return JSONResponse(
@@ -305,10 +305,7 @@ async def generate_video(
             quality=veo_quality
         )
         if local_filename:
-            video_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{local_filename}"
-            local_video_path = os.path.join(temp_dir, local_filename)
-            
-            video_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{local_filename}"
+            video_url = f"/temp/{local_filename}"
             local_video_path = os.path.join(temp_dir, local_filename)
     except Exception as e:
         error_msg = str(e)
@@ -343,7 +340,7 @@ async def generate_video(
                     converted_filename = convert_format(local_video_path, aspect_ratio, mode="fit")
                     if converted_filename:
                         local_video_path = os.path.join(temp_dir, converted_filename)
-                        video_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{converted_filename}"
+                        video_url = f"/temp/{converted_filename}"
     except Exception as e:
         print(f"WARNING: Aspect ratio enforcement skipped: {e}")
 
@@ -360,7 +357,7 @@ async def generate_video(
                 aspect_ratio=aspect_ratio
             )
             if captioned_filename:
-                captioned_video_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{captioned_filename}"
+                captioned_video_url = f"/temp/{captioned_filename}"
 
                 # Use captioned version as the main video
                 video_url = captioned_video_url
@@ -376,7 +373,7 @@ async def generate_video(
         try:
             format_results = await convert_to_all_formats(local_video_path, original_ratio=aspect_ratio)
             for ratio, filename in format_results.items():
-                format_urls[ratio] = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{filename}"
+                format_urls[ratio] = f"/temp/{filename}"
 
             print(f"Generated {len(format_urls)} format(s)")
         except Exception as e:
@@ -389,7 +386,7 @@ async def generate_video(
             merged_filename = await merge_service.merge_audio_video(local_video_path, audio_path)
             if merged_filename:
                 local_video_path = os.path.join(temp_dir, merged_filename)
-                video_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{merged_filename}"
+                video_url = f"/temp/{merged_filename}"
         except Exception as e:
             print(f"WARNING: Audio merge failed (non-fatal): {e}")
 
@@ -433,7 +430,7 @@ async def generate_video(
                 )
                 if ok:
                     local_video_path = tagged_path
-                    video_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{tagged_filename}"
+                    video_url = f"/temp/{tagged_filename}"
     except Exception as e:
         print(f"WARNING: Metadata step failed (non-fatal): {e}")
 
@@ -508,7 +505,7 @@ async def generate_voice(
     audio_filename = f"audio_only_{int(time.time())}.mp3"
     try:
         audio_path = await generate_audio(script, audio_filename, voice=voice, speed=speed, pitch=pitch)
-        audio_url = f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{audio_filename}"
+        audio_url = f"/temp/{audio_filename}"
         return {
             "status": "success",
             "data": {
@@ -578,7 +575,7 @@ async def add_captions_endpoint(
             return {
                 "status": "success",
                 "data": {
-                    "captioned_video_url": f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{captioned}"
+                    "captioned_video_url": f"/temp/{captioned}"
                 }
             }
         return JSONResponse(
@@ -613,7 +610,7 @@ async def convert_format_endpoint(
             return {
                 "status": "success",
                 "data": {
-                    "converted_video_url": f"{os.getenv('BASE_URL', 'http://localhost:8000')}/temp/{converted}",
+                    "converted_video_url": f"/temp/{converted}",
                     "format": target_ratio
                 }
             }
@@ -645,8 +642,7 @@ async def generate_all_formats_endpoint(
     print(f"Generating all formats for {video_filename}...")
     try:
         results = await convert_to_all_formats(video_path, original_ratio=original_ratio, mode=mode)
-        base_url = os.getenv('BASE_URL', 'http://localhost:8000')
-        format_urls = {ratio: f"{base_url}/temp/{filename}" for ratio, filename in results.items()}
+        format_urls = {ratio: f"/temp/{filename}" for ratio, filename in results.items()}
 
         return {
             "status": "success",

@@ -43,6 +43,12 @@ import {
 import { API_BASE_URL } from './config';
 import './VideoGenerator.css';
 import LoadingScreen from './LoadingScreen';
+const getFullUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+    return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 
 
 
@@ -353,7 +359,7 @@ const VideoGenerator = ({ navigate }) => {
             });
             const data = await response.json();
             if (data.status === 'success') {
-                setVoiceOnlyUrl(data.data.audio_url);
+                setVoiceOnlyUrl(getFullUrl(data.data.audio_url));
                 alert('AI Voice generated successfully!');
             }
         } catch (error) {
@@ -457,7 +463,7 @@ const VideoGenerator = ({ navigate }) => {
             saveToHistory({
                 id: Date.now(),
                 topic,
-                video_url: data.data.video_url,
+                video_url: getFullUrl(data.data.video_url),
                 date: new Date().toLocaleDateString()
             });
             setStep(3);
@@ -497,7 +503,7 @@ const VideoGenerator = ({ navigate }) => {
             if (data.status === 'success') {
                 setFormatResults(prev => ({
                     ...prev,
-                    [targetRatio]: data.data.converted_video_url
+                    [targetRatio]: getFullUrl(data.data.converted_video_url)
                 }));
             }
         } catch (error) {
@@ -529,7 +535,7 @@ const VideoGenerator = ({ navigate }) => {
                     ...prev,
                     data: {
                         ...prev.data,
-                        captioned_video_url: data.data.captioned_video_url
+                        captioned_video_url: getFullUrl(data.data.captioned_video_url)
                     }
                 }));
             }
@@ -950,9 +956,9 @@ const VideoGenerator = ({ navigate }) => {
 
                     {/* Main Video Player */}
                     <div className="final-video-card">
-                        <video controls autoPlay src={result.data.video_url} className="cinema-player" />
+                        <video controls autoPlay src={getFullUrl(result.data.video_url)} className="cinema-player" />
                         <div className="video-actions">
-                            <a href={result.data.video_url} target="_blank" download className="download-cta">
+                             <a href={getFullUrl(result.data.video_url)} target="_blank" download className="download-cta">
                                 <Download size={18} /> Download MP4
                             </a>
                             <button className="restart-btn" onClick={() => { setStep(1); setResult(null); setStatus('idle'); setFormatResults({}); setDubResults([]); setLastGenerationUsage(null) }}>
@@ -1030,7 +1036,7 @@ const VideoGenerator = ({ navigate }) => {
                                                 </span>
                                             </div>
                                             {hasFormat ? (
-                                                <a href={formatResults[ratio]} target="_blank" download className="format-download-btn downloaded">
+                                                <a href={getFullUrl(formatResults[ratio])} target="_blank" download className="format-download-btn downloaded">
                                                     <Download size={14} /> Download
                                                 </a>
                                             ) : (
@@ -1086,7 +1092,7 @@ const VideoGenerator = ({ navigate }) => {
                                     <CheckCircle2 size={18} />
                                     <h4>Captioned Video Ready</h4>
                                 </div>
-                                <a href={result.data.captioned_video_url} target="_blank" download className="format-download-btn downloaded">
+                                <a href={getFullUrl(result.data.captioned_video_url)} target="_blank" download className="format-download-btn downloaded">
                                     <Download size={14} /> Download Captioned
                                 </a>
                             </div>
@@ -1289,7 +1295,7 @@ const VideoGenerator = ({ navigate }) => {
                         <div className="history-empty">No projects yet</div>
                     ) : (
                         history.map(item => (
-                            <div key={item.id} className="history-item" onClick={() => window.open(item.video_url)}>
+                            <div key={item.id} className="history-item" onClick={() => window.open(getFullUrl(item.video_url))}>
                                 <div className="item-topic">{item.topic}</div>
                                 <div className="item-date">{item.date}</div>
                             </div>
