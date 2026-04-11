@@ -3,8 +3,6 @@ from google import genai
 from dotenv import load_dotenv
 import PIL.Image
 
-from langfuse import Langfuse
-
 # Load environment variables
 load_dotenv()
 
@@ -15,26 +13,13 @@ class GeminiService:
 
     def generate_script(self, topic: str, language: str = "English", duration_seconds: int = 15, model_name: str = "gemini-2.5-flash"):
         """
-        Uses Gemini AI to generate a video script with explicit Langfuse tracing.
+        Uses Gemini AI to generate a video script.
         """
-        from dotenv import load_dotenv
         load_dotenv(override=True)
         self.api_key = os.getenv("GOOGLE_API_KEY")
         self.client = genai.Client(api_key=self.api_key)
 
         word_count = int((duration_seconds / 60) * 150)
-
-        langfuse = Langfuse()
-        trace = langfuse.trace(
-            name="script-generation",
-            metadata={"topic": topic[:100], "language": language, "duration": duration_seconds}
-        )
-
-        generation = trace.generation(
-            name="generate_script",
-            model=model_name,
-            input={"topic": topic, "language": language, "duration_seconds": duration_seconds}
-        )
 
         prompt_text = f"""
         Write a video script about {topic}.
@@ -60,26 +45,10 @@ class GeminiService:
             output_tokens = usage.candidates_token_count
 
             if response and response.text:
-                script = response.text.strip()
-                generation.end(
-                    output=script[:500],
-                    usage={
-                        "input": input_tokens,
-                        "output": output_tokens,
-                        "total": input_tokens + output_tokens
-                    }
-                )
-                langfuse.flush()
-                return script, input_tokens, output_tokens
+                return response.text.strip(), input_tokens, output_tokens
 
         except Exception as e:
             print(f"DEBUG: Script generation failed: {e}")
-            generation.end(
-                output={"error": str(e)},
-                level="ERROR",
-                status_message=str(e)
-            )
-            langfuse.flush()
             return f"Hey everyone! Today we're diving into {topic}. It's honestly one of the most interesting things happening right now, and I can't wait to share some fresh insights with you. Stay tuned!", 10, 20
 
     def generate_visual_prompt(self, script: str, topic: str, *, use_image: bool = True, use_tts: bool = True):
@@ -87,17 +56,6 @@ class GeminiService:
         Transforms a spoken script into a high-quality visual description for video generation.
         """
         model_name = "gemini-2.5-flash"
-        langfuse = Langfuse()
-        trace = langfuse.trace(
-            name="visual-prompt-generation",
-            metadata={"topic": topic[:100]}
-        )
-
-        generation = trace.generation(
-            name="generate_visual_prompt",
-            model=model_name,
-            input={"topic": topic, "script": script[:200]}
-        )
 
         identity_rules = ""
         if use_image:
@@ -152,50 +110,23 @@ class GeminiService:
             )
 
             if response and response.text:
-                visual_prompt = response.text.strip()
+                return response.text.strip()
 
-                usage_data = {}
-                if response.usage_metadata:
-                    usage_data = {
-                        "input": response.usage_metadata.prompt_token_count,
-                        "output": response.usage_metadata.candidates_token_count,
-                        "total": response.usage_metadata.prompt_token_count + response.usage_metadata.candidates_token_count
-                    }
-
-                generation.end(output=visual_prompt[:500], usage=usage_data)
-                langfuse.flush()
-                return visual_prompt
-
-            generation.end(output="Fallback prompt used")
-            langfuse.flush()
             if use_tts:
                 return f"A single professional presenter speaking the script: '{script}' in a cinematic corporate studio, photorealistic, high-end lighting, shallow depth of field."
             return f"Cinematic photorealistic visuals that communicate the topic '{topic}', premium lighting, smooth camera motion, no text overlays."
 
         except Exception as e:
             print(f"DEBUG: Visual prompt generation failed: {e}")
-            generation.end(
-                output={"error": str(e)},
-                level="ERROR",
-                status_message=str(e)
-            )
-            langfuse.flush()
             if use_tts:
                 return f"Cinematic high-quality video of a single professional person speaking the script: {script}."
             return f"Cinematic high-quality visuals that communicate the topic: {topic}."
 
     def detect_gender(self, image_path: str):
         """
-        Detects gender using Gemini with Langfuse tracking.
+        Detects gender using Gemini.
         """
         model_name = "gemini-2.5-flash"
-        langfuse = Langfuse()
-        trace = langfuse.trace(name="gender-detection")
-        generation = trace.generation(
-            name="detect_gender",
-            model=model_name,
-            input={"image_path": image_path}
-        )
 
         try:
             from PIL import Image
@@ -210,29 +141,12 @@ class GeminiService:
             )
 
             result = response.text.strip().lower()
-            gender = 'female' if 'female' in result else 'male'
-
-            usage_data = {}
-            if response.usage_metadata:
-                usage_data = {
-                    "input": response.usage_metadata.prompt_token_count,
-                    "output": response.usage_metadata.candidates_token_count,
-                    "total": response.usage_metadata.prompt_token_count + response.usage_metadata.candidates_token_count
-                }
-
-            generation.end(output=gender, usage=usage_data)
-            langfuse.flush()
-            return gender
+            return 'female' if 'female' in result else 'male'
 
         except Exception as e:
             print(f"DEBUG: Gender detection failed: {e}")
-            generation.end(
-                output={"error": str(e)},
-                level="ERROR",
-                status_message=str(e)
-            )
-            langfuse.flush()
             return 'male'
+
 
 # Legacy compatibility functions for main.py
 _service = GeminiService()

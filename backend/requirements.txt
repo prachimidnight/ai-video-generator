@@ -11,6 +11,5 @@ pymongo
 passlib
 bcrypt
 email-validator
-langfuse
 python-jose[cryptography]
 razorpay
